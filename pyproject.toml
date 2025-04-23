@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "fit-acquisition"
+version = "1.0.0"
+description = "Utilities and base classes for content acquisition, shared across FIT scraper modules."
+authors = ["FIT Project"]
+license = "LGPL-3.0-or-later"
+packages = [
+    { include = "fit_acquisition" }
+]
+
+include = [
+    "fit_assets/icons/info-circle.png"
+]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.13"
+PySide6 = "6.9.0"
+
+fit-configurations = {git = "https://github.com/fit-project/fit-configurations.git", rev = "main"}
+
+
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
