@@ -4,7 +4,6 @@
     "ACQUISITION_FINISHED" : "Acquisition finished",
     "NTP_ACQUISITION_TIME" : "NTP {} acquisition time: {}",
     "WHOIS": "Whois",
-    "TRACEROUTE": "Traceroute",
     "SAVE_CASE_INFO": "Save Case Information",
     "HASHFILE": "Calculate Hash File",
     "REPORTFILE": "Generate PDF Report",
@@ -54,5 +53,11 @@
     "SSLKEYLOG": "SSL Keylog",
     "SSLKEYLOG_STARTED": "SSLKEYLOG started",
     "SSLKEYLOG_COMPLETED": "SSLKEYLOG completed",
-    "SSLKEYLOG_GET": "Get SSLKEYLOG"
+    "SSLKEYLOG_GET": "Get SSLKEYLOG",
+    "TRACEROUTE": "Traceroute",
+    "TRACEROUTE_STARTED": "TRACEROUTE started",
+    "TRACEROUTE_COMPLETED": "TRACEROUTE completed",
+    "TRACEROUTE_GET_INFO_URL": "Get TRACEROUTE info for URL: {}",
+    "TRACEROUTE_ERROR_TITLE": "TRACEROUTE error",
+    "TRACEROUTE_EXECUTION_ERROR": "Error during TRACEROUTE execution!\nSee bellow for more detail."
 }

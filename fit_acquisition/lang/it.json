@@ -4,7 +4,6 @@
     "ACQUISITION_FINISHED": "Acquisizione completata",
     "NTP_ACQUISITION_TIME": "Ora di acquisizione NTP {}: {}",
     "WHOIS": "Whois",
-    "TRACEROUTE": "Traceroute",
     "SAVE_CASE_INFO": "Salva informazioni del caso",
     "HASHFILE": "Calcola hash del file",
     "REPORTFILE": "Genera report PDF",
@@ -44,7 +43,7 @@
     "NSLOOKUP_EXECUTION_ERROR": "Errore durante l'esecuzione di NSLOOKUP!\nVedi sotto per maggiori dettagli.",
     "SSLCERTIFICATE": "CERTIFICATO SSL",
     "SSLCERTIFICATE_STARTED": "Inizio acquisizione del CERTIFICATO SSL",
-    "SSLCERTIFICATE_COMPLETED": " Acquisizione CERTIFICATO SSL completata",
+    "SSLCERTIFICATE_COMPLETED": "Acquisizione CERTIFICATO SSL completata",
     "SSLCERTIFICATE_GET_FROM_URL": "Recupero CERTIFICATO SSL dall'URL: {}",
     "SSLCERTIFICATE_NOT_EXIST": "Il CERTIFICATO SSL non esiste sull'URL: {}",
     "SSLCERTIFICATE_ERROR_TITLE": "Errore CERTIFICATO SSL",
@@ -54,6 +53,11 @@
     "SSLKEYLOG": "Log delle chiavi SSL",
     "SSLKEYLOG_STARTED": "Inizio acquisizione SSLKEYLOG",
     "SSLKEYLOG_COMPLETED": "Acquisizione SSLKEYLOG completata",
-    "SSLKEYLOG_GET": "Recupero del log delle chiavi SSL (sslkeylog)"
-
+    "SSLKEYLOG_GET": "Recupero del log delle chiavi SSL (sslkeylog)",
+    "TRACEROUTE": "Traceroute",
+    "TRACEROUTE_STARTED": "Inizio acquisizione TRACEROUTE",
+    "TRACEROUTE_COMPLETED": "Acquisizione TRACEROUTE completata",
+    "TRACEROUTE_GET_INFO_URL": "TRACEROUTE per l'URL: {}",
+    "TRACEROUTE_ERROR_TITLE": "Errore TRACEROUTE",
+    "TRACEROUTE_EXECUTION_ERROR": "Errore durante l'esecuzione del TRACEROUTE!\nVedi sotto per maggiori dettagli."
 }
