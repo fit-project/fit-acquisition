@@ -12,7 +12,7 @@ import requests
 from urllib.parse import urlparse
 from shiboken6 import isValid
 
-from PySide6.QtCore import QObject, Signal, QThread
+from PySide6.QtCore import QObject, Signal, QThread, QEventLoop, QTimer
 from PySide6.QtWidgets import QMessageBox
 
 from fit_acquisition.task import Task
@@ -26,6 +26,10 @@ class HeadersWorker(QObject):
     finished = Signal()
     started = Signal()
     error = Signal(object)
+
+    def __init__(self, parent=None):
+        QObject.__init__(self, parent=parent)
+        self.translations = load_translations()
 
     @property
     def url(self):
@@ -52,7 +56,7 @@ class HeadersWorker(QObject):
             self.error.emit(
                 {
                     "title": self.translations["HEADERS_ERROR_TITLE"],
-                    "message": self.translations["HEADERS_CONNECTION_ERROR"],
+                    "message": self.translations["HTTP_CONNECTION_ERROR"],
                     "details": str(e),
                 }
             )
@@ -118,6 +122,10 @@ class TaskHeaders(Task):
         self.update_task(State.COMPLETED, Status.SUCCESS)
 
         self.finished.emit()
+
+        loop = QEventLoop()
+        QTimer.singleShot(1000, loop.quit)
+        loop.exec()
 
         self.worker_thread.quit()
         self.worker_thread.wait()

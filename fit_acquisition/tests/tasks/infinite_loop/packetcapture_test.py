@@ -86,32 +86,36 @@ class TaskPacketCaptureTest(unittest.TestCase):
             self.translations["NETWORK_PACKET_CAPTURE_STARTED_DETAILS"],
         )
 
+        self.assertEqual(
+            self.task.status_bar.currentMessage(),
+            self.translations["NETWORK_PACKET_CAPTURE_STARTED"],
+        )
+
         time.sleep(5)
 
         spy = QSignalSpy(self.task.finished)
+        self.task.increment = 100
         self.task.stop()
 
         if spy.count() == 0:
-            received = spy.wait(500)
+            received = spy.wait(1500)
             while received is False:
-                received = spy.wait(500)
+                received = spy.wait(1500)
 
         self.assertEqual(spy.count(), 1)
         self.assertEqual(self.task.state, State.COMPLETED)
         self.assertEqual(self.task.status, Status.SUCCESS)
         self.assertEqual(
             self.task.details,
-            self.task.details,
-            self.translations["NETWORK_PACKET_CAPTURE_COMPLETED"],
+            self.translations["NETWORK_PACKET_CAPTURE_COMPLETED_DETAILS"],
         )
 
         self.assertEqual(
             self.task.status_bar.currentMessage(),
-            self.task.details,
-            self.translations["NETWORK_PACKET_CAPTURE_COMPLETED_DETAILS"],
+            self.translations["NETWORK_PACKET_CAPTURE_COMPLETED"],
         )
 
-        self.assertEqual(self.task.progress_bar.value(), 0)
+        self.assertEqual(self.task.progress_bar.value(), 100)
 
         self.assertTrue(
             os.path.exists(os.path.join(self.folder, self.task.options["filename"]))
@@ -130,5 +134,6 @@ if __name__ == "__main__":
     TaskPacketCaptureTest.window = Ui_MainWindow()
     TaskPacketCaptureTest.window.setupUi(MainWindow)
     TaskPacketCaptureTest.window.progressBar.setValue(0)
+    MainWindow.show()
 
     unittest.main()

@@ -12,7 +12,7 @@ from nslookup import Nslookup
 from urllib.parse import urlparse
 from shiboken6 import isValid
 
-from PySide6.QtCore import QObject, Signal, QThread
+from PySide6.QtCore import QObject, Signal, QThread, QEventLoop, QTimer
 from PySide6.QtWidgets import QMessageBox
 
 from fit_acquisition.task import Task
@@ -31,6 +31,10 @@ class NslookupWorker(QObject):
     finished = Signal()
     started = Signal()
     error = Signal(object)
+
+    def __init__(self, parent=None):
+        QObject.__init__(self, parent=parent)
+        self.translations = load_translations()
 
     def set_options(self, options):
         self.url = options["url"]
@@ -147,6 +151,10 @@ class TaskNslookup(Task):
         self.update_task(State.COMPLETED, Status.SUCCESS)
 
         self.finished.emit()
+
+        loop = QEventLoop()
+        QTimer.singleShot(1000, loop.quit)
+        loop.exec()
 
         self.worker_thread.quit()
         self.worker_thread.wait()

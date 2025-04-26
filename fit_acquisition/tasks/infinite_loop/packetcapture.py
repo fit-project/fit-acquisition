@@ -44,6 +44,8 @@ class PacketCaptureWorker(QObject):
         self.output_file = None
         self.sniffer = scapy.AsyncSniffer()
 
+        self.translations = load_translations()
+
     def set_options(self, options):
         self.output_file = os.path.join(
             options["acquisition_directory"], options["filename"]
@@ -138,6 +140,7 @@ class TaskPacketCapture(Task):
         self.worker.stop()
 
     def __finished(self):
+
         self.logger.info(self.translations["NETWORK_PACKET_CAPTURE_COMPLETED"])
         self.set_message_on_the_statusbar(
             self.translations["NETWORK_PACKET_CAPTURE_COMPLETED"]
@@ -147,10 +150,14 @@ class TaskPacketCapture(Task):
         self.update_task(
             State.COMPLETED,
             Status.SUCCESS,
-            self.translations["NETWORK_PACKET_CAPTURE_COMPLETED"],
+            self.translations["NETWORK_PACKET_CAPTURE_COMPLETED_DETAILS"],
         )
 
         self.finished.emit()
+
+        loop = QEventLoop()
+        QTimer.singleShot(1000, loop.quit)
+        loop.exec()
 
         self.worker_thread.quit()
         self.worker_thread.wait()

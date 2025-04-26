@@ -11,7 +11,7 @@
 import os
 from shiboken6 import isValid
 
-from PySide6.QtCore import QObject, Signal, QThread, QUrl
+from PySide6.QtCore import QObject, Signal, QThread, QUrl, QEventLoop, QTimer
 from PySide6.QtWidgets import QMessageBox, QApplication
 from PySide6.QtMultimedia import (
     QMediaCaptureSession,
@@ -232,6 +232,10 @@ class TaskScreenRecorder(Task):
         )
 
         self.finished.emit()
+
+        loop = QEventLoop()
+        QTimer.singleShot(1000, loop.quit)
+        loop.exec()
 
         self.worker_thread.quit()
         self.worker_thread.wait()

@@ -94,6 +94,7 @@ class TaskScreenRecorderTest(unittest.TestCase):
         time.sleep(5)
 
         spy = QSignalSpy(self.task.finished)
+        self.task.increment = 100
         self.task.stop()
 
         if spy.count() == 0:
@@ -116,7 +117,7 @@ class TaskScreenRecorderTest(unittest.TestCase):
             self.translations["SCREEN_RECORDER_COMPLETED_DETAILS"],
         )
 
-        self.assertEqual(self.task.progress_bar.value(), 0)
+        self.assertEqual(self.task.progress_bar.value(), 100)
 
         file_pattern = os.path.join(self.folder, self.task.options["filename"]) + ".*"
         matching_files = glob.glob(file_pattern)
@@ -136,5 +137,6 @@ if __name__ == "__main__":
     TaskScreenRecorderTest.window = Ui_MainWindow()
     TaskScreenRecorderTest.window.setupUi(MainWindow)
     TaskScreenRecorderTest.window.progressBar.setValue(0)
+    MainWindow.show()
 
     unittest.main()

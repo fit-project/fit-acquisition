@@ -82,6 +82,7 @@ class TaskNslookupTest(unittest.TestCase):
         self.assertEqual(self.task.progress_bar.value(), 0)
 
         spy = QSignalSpy(self.task.finished)
+        self.task.increment = 100
 
         if spy.count() == 0:
             received = spy.wait(500)
@@ -96,6 +97,8 @@ class TaskNslookupTest(unittest.TestCase):
             self.task.status_bar.currentMessage(),
             self.translations["NSLOOKUP_COMPLETED"],
         )
+
+        self.assertEqual(self.task.progress_bar.value(), 100)
 
         self.assertTrue(os.path.exists(os.path.join(self.folder, "nslookup.txt")))
 
@@ -112,5 +115,6 @@ if __name__ == "__main__":
     TaskNslookupTest.window = Ui_MainWindow()
     TaskNslookupTest.window.setupUi(MainWindow)
     TaskNslookupTest.window.progressBar.setValue(0)
+    MainWindow.show()
 
     unittest.main()

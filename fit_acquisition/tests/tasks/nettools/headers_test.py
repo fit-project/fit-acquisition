@@ -82,6 +82,7 @@ class TaskHeadersTest(unittest.TestCase):
         self.assertEqual(self.task.progress_bar.value(), 0)
 
         spy = QSignalSpy(self.task.finished)
+        self.task.increment = 100
 
         if spy.count() == 0:
             received = spy.wait(500)
@@ -97,6 +98,7 @@ class TaskHeadersTest(unittest.TestCase):
             self.translations["HEADERS_COMPLETED"],
         )
 
+        self.assertEqual(self.task.progress_bar.value(), 100)
         self.assertTrue(os.path.exists(os.path.join(self.folder, "headers.txt")))
 
 
@@ -112,5 +114,6 @@ if __name__ == "__main__":
     TaskHeadersTest.window = Ui_MainWindow()
     TaskHeadersTest.window.setupUi(MainWindow)
     TaskHeadersTest.window.progressBar.setValue(0)
+    MainWindow.show()
 
     unittest.main()
