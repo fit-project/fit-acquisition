@@ -27,6 +27,9 @@ from fit_acquisition.tasks.infinite_loop.packetcapture import TaskPacketCapture
 
 from fit_acquisition.tests.tasks.tasks_ui import Ui_MainWindow
 
+from fit_configurations.logger import LogConfigTools
+import logging.config
+
 app = QApplication(sys.argv)
 
 logger = logging.getLogger("view.scrapers.web.web")
@@ -39,6 +42,10 @@ class TaskPacketCaptureTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        log_tools = LogConfigTools()
+        log_tools.change_filehandlers_path(cls.folder)
+        logging.config.dictConfig(log_tools.config)
+
         cls.task = TaskPacketCapture(
             logger,
             cls.window.progressBar,

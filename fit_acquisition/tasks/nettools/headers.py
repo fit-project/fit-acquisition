@@ -60,7 +60,14 @@ class HeadersWorker(QObject):
 
     def start(self):
         self.started.emit()
-        self.logger.info(self.__get_headers_information(self.url))
+        headers = self.__get_headers_information(self.url)
+        if headers:
+            headers = dict(headers)
+            for key, value in headers.items():
+                self.logger.info(f"{key}: {value}")
+        else:
+            self.logger.error("No headers retrieved.")
+
         self.finished.emit()
 
 

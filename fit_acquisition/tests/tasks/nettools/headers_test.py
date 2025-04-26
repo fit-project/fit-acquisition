@@ -9,11 +9,9 @@
 
 
 import os
-import time
 import sys
 import unittest
 import logging
-import glob
 
 from PySide6 import QtWidgets
 from PySide6.QtWidgets import QApplication
@@ -30,15 +28,24 @@ from fit_acquisition.tests.tasks.tasks_ui import Ui_MainWindow
 
 app = QApplication(sys.argv)
 
+from fit_configurations.logger import LogConfigTools
+import logging.config
+
 logger = logging.getLogger("view.scrapers.web.web")
 
 
-class TaskScreenRecorderTest(unittest.TestCase):
+class TaskHeadersTest(unittest.TestCase):
+    folder = ""
     window = None
     translations = load_translations()
 
     @classmethod
     def setUpClass(cls):
+        log_tools = LogConfigTools()
+        log_tools.set_dynamic_loggers()
+        log_tools.change_filehandlers_path(cls.folder)
+        logging.config.dictConfig(log_tools.config)
+
         cls.task = TaskHeaders(
             logger,
             cls.window.progressBar,
@@ -90,12 +97,20 @@ class TaskScreenRecorderTest(unittest.TestCase):
             self.translations["HEADERS_COMPLETED"],
         )
 
+        self.assertTrue(os.path.exists(os.path.join(self.folder, "headers.txt")))
+
 
 if __name__ == "__main__":
 
+    folder = resolve_path("acquisition/tasks/headers_test_folder")
+
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
     MainWindow = QtWidgets.QMainWindow()
-    TaskScreenRecorderTest.window = Ui_MainWindow()
-    TaskScreenRecorderTest.window.setupUi(MainWindow)
-    TaskScreenRecorderTest.window.progressBar.setValue(0)
+    TaskHeadersTest.folder = folder
+    TaskHeadersTest.window = Ui_MainWindow()
+    TaskHeadersTest.window.setupUi(MainWindow)
+    TaskHeadersTest.window.progressBar.setValue(0)
 
     unittest.main()

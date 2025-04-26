@@ -30,6 +30,10 @@ from fit_acquisition.tests.tasks.tasks_ui import Ui_MainWindow
 
 app = QApplication(sys.argv)
 
+
+from fit_configurations.logger import LogConfigTools
+import logging.config
+
 logger = logging.getLogger("view.scrapers.web.web")
 
 
@@ -40,6 +44,10 @@ class TaskScreenRecorderTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        log_tools = LogConfigTools()
+        log_tools.change_filehandlers_path(cls.folder)
+        logging.config.dictConfig(log_tools.config)
+
         cls.task = TaskScreenRecorder(
             logger,
             cls.window.progressBar,

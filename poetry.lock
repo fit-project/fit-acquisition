@@ -2,14 +2,14 @@
 
 [[package]]
 name = "certifi"
-version = "2025.1.31"
+version = "2025.4.26"
 description = "Python package for providing Mozilla's CA Bundle."
 optional = false
 python-versions = ">=3.6"
 groups = ["main"]
 files = [
-    {file = "certifi-2025.1.31-py3-none-any.whl", hash = "sha256:ca78db4565a652026a4db2bcdf68f2fb589ea80d0be70e03929ed730746b84fe"},
-    {file = "certifi-2025.1.31.tar.gz", hash = "sha256:3d5da6925056f6f18f119200434a4780a94263f10d1c21d032a6f6b2baa20651"},
+    {file = "certifi-2025.4.26-py3-none-any.whl", hash = "sha256:30350364dfe371162649852c63336a15c70c6510c2ad5015b21c2345311805f3"},
+    {file = "certifi-2025.4.26.tar.gz", hash = "sha256:0a816057ea3cdefcef70270d2c515e4506bbc954f417fa5ade2021213bb8f0c6"},
 ]
 
 [[package]]
@@ -197,7 +197,7 @@ resolved_reference = "c69bada5554a55e6414a66f1a9e4891d6b861f48"
 
 [[package]]
 name = "fit-common"
-version = "0.1.4"
+version = "0.1.5"
 description = "Shared code between modules of the FIT project"
 optional = false
 python-versions = ">=3.9,<3.13"
@@ -218,11 +218,11 @@ windows-tools = {version = "^2.5.0", markers = "sys_platform == \"win32\""}
 type = "git"
 url = "https://github.com/fit-project/fit-common.git"
 reference = "main"
-resolved_reference = "ee0ac3b2b06bf7319f821f0686874a8cb72011c2"
+resolved_reference = "425daad839ebfd7156e6b9d6f0a4de46698de5f8"
 
 [[package]]
 name = "fit-configurations"
-version = "1.0.6"
+version = "1.0.7"
 description = "This module provides the graphical interface for configuring settings used by the FIT application."
 optional = false
 python-versions = ">=3.9,<3.13"
@@ -240,7 +240,7 @@ sqlalchemy = "^2.0.40"
 type = "git"
 url = "https://github.com/fit-project/fit-configurations.git"
 reference = "main"
-resolved_reference = "8df7206e4c31beeb3d69cec990cffeada2f1bfee"
+resolved_reference = "2824473ff823ec6601e114326828294b43f82ed6"
 
 [[package]]
 name = "greenlet"
