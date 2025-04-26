@@ -71,7 +71,7 @@ class HeadersWorker(QObject):
         self.finished.emit()
 
 
-class TaskNslookup(Task):
+class TaskHeaders(Task):
     def __init__(self, logger, progress_bar=None, status_bar=None, parent=None):
         super().__init__(logger, progress_bar, status_bar, parent)
 
