@@ -5,7 +5,6 @@
     "NTP_ACQUISITION_TIME" : "NTP {} acquisition time: {}",
     "WHOIS": "Whois",
     "TRACEROUTE": "Traceroute",
-    "SSLKEYLOG": "SSL Keylog",
     "SAVE_CASE_INFO": "Save Case Information",
     "HASHFILE": "Calculate Hash File",
     "REPORTFILE": "Generate PDF Report",
@@ -51,5 +50,9 @@
     "SSLCERTIFICATE_ERROR_TITLE": "SSL CERTIFICATE error",
     "SSLCERTIFICATE_ERROR_CHECK": "Error during SSL CERTIFICATE verification.",
     "SSLCERTIFICATE_CONNECTION_ERROR": "Error during SSL connection or while retrieving the SSL CERTIFICATE.",
-    "SSLCERTIFICATE_SAVING_CERTIFICATE_ERROR": "Exception while saving SSL CERTIFICATE!\nSee bellow for more detail."
+    "SSLCERTIFICATE_SAVING_CERTIFICATE_ERROR": "Exception while saving SSL CERTIFICATE!\nSee bellow for more detail.",
+    "SSLKEYLOG": "SSL Keylog",
+    "SSLKEYLOG_STARTED": "SSLKEYLOG started",
+    "SSLKEYLOG_COMPLETED": "SSLKEYLOG completed",
+    "SSLKEYLOG_GET": "Get SSLKEYLOG"
 }
