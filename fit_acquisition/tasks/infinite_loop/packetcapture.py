@@ -8,6 +8,7 @@
 ######
 
 import logging
+from shiboken6 import isValid
 
 logging.getLogger("scapy").setLevel(logging.CRITICAL)
 import scapy.all as scapy
@@ -43,8 +44,6 @@ class PacketCaptureWorker(QObject):
         self.output_file = None
         self.sniffer = scapy.AsyncSniffer()
 
-        self.translations = load_translations()
-
     def set_options(self, options):
         self.output_file = os.path.join(
             options["acquisition_directory"], options["filename"]
@@ -75,6 +74,8 @@ class PacketCaptureWorker(QObject):
 class TaskPacketCapture(Task):
     def __init__(self, logger, progress_bar=None, status_bar=None, parent=None):
         super().__init__(logger, progress_bar, status_bar, parent)
+
+        self.translations = load_translations()
 
         self.label = self.translations["PACKET_CAPTURE"]
         self.is_infinite_loop = True
@@ -141,12 +142,12 @@ class TaskPacketCapture(Task):
         self.set_message_on_the_statusbar(
             self.translations["NETWORK_PACKET_CAPTURE_COMPLETED"]
         )
-        self.upadate_progress_bar()
+        self.update_progress_bar()
 
         self.update_task(
             State.COMPLETED,
             Status.SUCCESS,
-            self.translations["NETWORK_PACKET_CAPTURE_COMPLETED_DETAILS"],
+            self.translations["NETWORK_PACKET_CAPTURE_COMPLETED"],
         )
 
         self.finished.emit()
@@ -155,6 +156,7 @@ class TaskPacketCapture(Task):
         self.worker_thread.wait()
 
     def __destroyed_handler(self, _dict):
-        if self.worker_thread.isRunning():
-            self.worker_thread.quit()
-            self.worker_thread.wait()
+        if hasattr(self, "worker_thread") and isValid(self.worker_thread):
+            if self.worker_thread.isRunning():
+                self.worker_thread.quit()
+                self.worker_thread.wait()

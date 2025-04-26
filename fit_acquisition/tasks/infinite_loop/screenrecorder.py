@@ -9,6 +9,8 @@
 
 
 import os
+from shiboken6 import isValid
+
 from PySide6.QtCore import QObject, Signal, QThread, QUrl
 from PySide6.QtWidgets import QMessageBox, QApplication
 from PySide6.QtMultimedia import (
@@ -20,18 +22,16 @@ from PySide6.QtMultimedia import (
 
 from fit_acquisition.task import Task
 from fit_common.gui.error import Error as ErrorView
-from fit_common. import 
-from view.util import get_vb_cable_virtual_audio_device
+from fit_common.gui.multimedia import get_vb_cable_virtual_audio_device
+
 
 from fit_configurations.controller.tabs.screenrecorder.screenrecorder import (
     ScreenRecorder as ScreenRecorderConfigurationController,
 )
 
+from fit_common.gui.utils import State, Status
 
-from common.constants import logger, details
-from common.constants import error
-from common.constants.view import screenrecorder
-from common.constants.view.tasks import labels, state, status
+from fit_acquisition.lang import load_translations
 
 
 class ScreenRecorderWorker(QObject):
@@ -46,6 +46,8 @@ class ScreenRecorderWorker(QObject):
 
         self.__is_enabled_audio_recording = False
 
+        self.translations = load_translations()
+
         # Video recording
         self.__video_to_record_session = QMediaCaptureSession()
         self.__screen_to_record = QScreenCapture()
@@ -57,7 +59,6 @@ class ScreenRecorderWorker(QObject):
         self.__video_to_record_session.setRecorder(self.__video_recorder)
 
     def __video_recorder_state_handler(self, recorder_state):
-
         if recorder_state == QMediaRecorder.RecorderState.StoppedState:
             self.__join_audio_and_video()
 
@@ -68,6 +69,7 @@ class ScreenRecorderWorker(QObject):
         app = QApplication.instance()
 
         screen = app.screenAt(options["window_pos"])
+
         if screen:
             self.__screen_to_record.setScreen(screen)
 
@@ -108,11 +110,12 @@ class ScreenRecorderWorker(QObject):
             self.__video_recorder.record()
             if self.__is_enabled_audio_recording is True:
                 self.__audio_recorder.record()
+
         except Exception as e:
             self.error.emit(
                 {
-                    "title": screenrecorder.SCREEN_RECODER,
-                    "message": error.SCREEN_RECODER,
+                    "title": self.translations["SCREEN_RECORDER_ERROR_TITLE"],
+                    "message": self.translations["SCREEN_RECORDER_ERROR_MSG"],
                     "details": str(e),
                 }
             )
@@ -133,7 +136,7 @@ class ScreenRecorderWorker(QObject):
 
     def __join_audio_and_video(self):
         if self.__is_enabled_audio_recording is True:
-            from moviepy.editor import VideoFileClip, AudioFileClip
+            from moviepy import VideoFileClip, AudioFileClip
 
             output_path = self.__filename + ".mp4"
             audio_path = self.__get_file_path(self.__audio_path)
@@ -157,7 +160,9 @@ class TaskScreenRecorder(Task):
     def __init__(self, logger, progress_bar=None, status_bar=None, parent=None):
         super().__init__(logger, progress_bar, status_bar, parent)
 
-        self.label = labels.SCREEN_RECORDER
+        self.translations = load_translations()
+
+        self.label = self.translations["SCREEN_RECORDER"]
         self.is_infinite_loop = True
 
         self.worker_thread = QThread()
@@ -192,36 +197,38 @@ class TaskScreenRecorder(Task):
         error_dlg.exec()
 
     def start(self):
-        self.update_task(state.STARTED, status.PENDING)
-        self.set_message_on_the_statusbar(logger.SCREEN_RECODER_STARTED)
+        self.update_task(State.STARTED, Status.PENDING)
+        self.set_message_on_the_statusbar(self.translations["SCREEN_RECORDER_STARTED"])
 
         self.worker.set_options(self.options)
         self.worker_thread.start()
 
     def __started(self):
         self.update_task(
-            state.STARTED,
-            status.SUCCESS,
-            details.SCREEN_RECORDER_STARTED,
+            State.STARTED,
+            Status.SUCCESS,
+            self.translations["SCREEN_RECORDER_STARTED_DETAILS"],
         )
 
-        self.logger.info(logger.SCREEN_RECODER_STARTED)
+        self.logger.info(self.translations["SCREEN_RECORDER_STARTED"])
         self.started.emit()
 
     def stop(self):
-        self.update_task(state.STOPPED, status.PENDING)
-        self.set_message_on_the_statusbar(logger.SCREEN_RECODER_STOPPED)
+        self.update_task(State.STOPPED, Status.PENDING)
+        self.set_message_on_the_statusbar(self.translations["SCREEN_RECORDER_STOPPED"])
         self.worker.stop()
 
     def __finished(self):
-        self.logger.info(logger.SCREEN_RECODER_COMPLETED)
-        self.set_message_on_the_statusbar(logger.SCREEN_RECODER_COMPLETED)
-        self.upadate_progress_bar()
+        self.logger.info(self.translations["SCREEN_RECORDER_COMPLETED"])
+        self.set_message_on_the_statusbar(
+            self.translations["SCREEN_RECORDER_COMPLETED_DETAILS"]
+        )
+        self.update_progress_bar()
 
         self.update_task(
-            state.COMPLETED,
-            status.SUCCESS,
-            details.SCREEN_RECORDER_COMPLETED,
+            State.COMPLETED,
+            Status.SUCCESS,
+            self.translations["SCREEN_RECORDER_COMPLETED_DETAILS"],
         )
 
         self.finished.emit()
@@ -230,6 +237,7 @@ class TaskScreenRecorder(Task):
         self.worker_thread.wait()
 
     def __destroyed_handler(self, _dict):
-        if self.worker_thread.isRunning():
-            self.worker_thread.quit()
-            self.worker_thread.wait()
+        if hasattr(self, "worker_thread") and isValid(self.worker_thread):
+            if self.worker_thread.isRunning():
+                self.worker_thread.quit()
+                self.worker_thread.wait()

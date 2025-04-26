@@ -33,6 +33,7 @@ class Task(QObject):
         self.details = ""
         self.task_handler = TasksHandler()
         self.task_handler.add_task(self)
+        self._increment = 0
 
     @property
     def label(self):
@@ -98,7 +99,7 @@ class Task(QObject):
     def sub_tasks(self, sub_tasks):
         self._sub_tasks = sub_tasks
 
-    def upadate_progress_bar(self):
+    def update_progress_bar(self):
         if self.progress_bar is not None:
             self.progress_bar.setValue(self.progress_bar.value() + int(self.increment))
 

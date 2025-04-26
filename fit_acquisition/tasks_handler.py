@@ -13,11 +13,18 @@ from PySide6.QtCore import QObject, Signal
 class TasksHandler(QObject):
     all_tasks_completed = Signal()
 
-    def __new__(cls):
-        if not hasattr(cls, "instance"):
-            cls.instance = super(TasksHandler, cls).__new__(cls)
-            cls.__tasks = list()
-        return cls.instance
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        if not hasattr(self, "_initialized"):
+            super().__init__()
+            self.__tasks = []
+            self._initialized = True
 
     def add_task(self, task):
         self.__tasks.append(task)

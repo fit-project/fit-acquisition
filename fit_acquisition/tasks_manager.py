@@ -38,8 +38,7 @@ class TasksManager(QObject):
         self.class_names_modules = dict()
         self.task_handler = TasksHandler()
 
-        # Lista dei package da cui caricare dinamicamente i moduli task
-        self.task_packages = ["fit_acquisition.tasks"]
+        self.task_packages = ["fit_acquisition.tasks.post"]
 
     def register_task_package(self, package):
         """

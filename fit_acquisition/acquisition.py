@@ -39,7 +39,14 @@ class Acquisition(QObject):
     start_tasks_is_finished = Signal()
     stop_tasks_is_finished = Signal()
 
-    def __init__(self, logger, progress_bar, status_bar, parent):
+    def __init__(
+        self,
+        logger,
+        progress_bar,
+        status_bar,
+        parent,
+        packages=None,
+    ):
         super().__init__(parent)
         self.progress_bar = progress_bar
         self.status_bar = status_bar
@@ -49,6 +56,16 @@ class Acquisition(QObject):
         self.translations = load_translations()
 
         self.tasks_manager = TasksManager(parent)
+
+        # if task_packages is not None:
+        #     task_packages.append("fit_acquisition.tasks.post")
+        # else:
+        #     task_packages = ["fit_acquisition.tasks.post"]
+
+        for package in packages:
+            self.tasks_manager.register_task_package(package)
+
+        self.tasks_manager.load_all_task_modules()
 
         self.options = dict()
 
