@@ -3,7 +3,6 @@
     "ACQUISITION_STOPPED": "Acquisizione interrotta",
     "ACQUISITION_FINISHED": "Acquisizione completata",
     "NTP_ACQUISITION_TIME": "Ora di acquisizione NTP {}: {}",
-    "NSLOOKUP": "Nslookup",
     "WHOIS": "Whois",
     "TRACEROUTE": "Traceroute",
     "SSLKEYLOG": "Log delle chiavi SSL",
@@ -31,11 +30,18 @@
     "SCREEN_RECORDER_COMPLETED_DETAILS": "Il ciclo è stato interrotto e il file .avi è stato salvato nella cartella del caso",
     "SCREEN_RECORDER_ERROR_TITLE": "Errore nella registrazione dello schermo.",
     "SCREEN_RECORDER_ERROR_MSG": "Si è verificato un errore durante l'acquisizione dello schermo!\\nVedi sotto per maggiori dettagli.",
+    "MALFORMED_URL_ERROR": "URL malformato: manca la parte di localizzazione della rete (netloc).",
+    "NO_DNS_RESPONSE": "Nessuna risposta DNS per {}",
     "HEADERS": "Intestazioni HTML",
     "HEADERS_STARTED": "Inizio acquisizione HEADERS",
     "HEADERS_COMPLETED": "Acquisizione HEADERS completata",
     "HEADERS_GET_INFO_URL": "Recupero informazioni HEADERS per l'URL: {}",
     "HEADERS_ERROR_TITLE": "Errore HEADERS",
-    "HEADERS_CONNECTION_ERROR": "Errore durante la richiesta HTTP! \nVedi sotto per maggiori dettagli.",
-    "HEADERS_MALFORMED_URL_ERROR": "URL malformato: manca la parte di localizzazione della rete (netloc)."
+    "HEADERS_CONNECTION_ERROR": "Errore durante la richiesta HTTP!\\nVedi sotto per maggiori dettagli.",
+    "NSLOOKUP": "Nslookup",
+    "NSLOOKUP_GET_INFO_URL": "Recupero informazioni NSLOOKUP per l'URL: {}",
+    "NSLOOKUP_STARTED": "Inizio acquisizione NSLOOKUP",
+    "NSLOOKUP_COMPLETED": "Acquisizione NSLOOKUP completata",
+    "NSLOOKUP_ERROR_TITLE": "Errore NSLOOKUP",
+    "NSLOOKUP_EXECUTION_ERROR": "Errore durante l'esecuzione di NSLOOKUP!\\nVedi sotto per maggiori dettagli."
 }

@@ -41,8 +41,8 @@ class HeadersWorker(QObject):
             self.error.emit(
                 {
                     "title": self.translations["HEADERS_ERROR_TITLE"],
-                    "message": self.translations["HEADERS_MALFORMED_URL_ERROR"],
-                    "details": str(e),
+                    "message": self.translations["MALFORMED_URL_ERROR"],
+                    "details": "",
                 }
             )
         try:
@@ -71,7 +71,7 @@ class HeadersWorker(QObject):
         self.finished.emit()
 
 
-class TaskHeaders(Task):
+class TaskNslookup(Task):
     def __init__(self, logger, progress_bar=None, status_bar=None, parent=None):
         super().__init__(logger, progress_bar, status_bar, parent)
 

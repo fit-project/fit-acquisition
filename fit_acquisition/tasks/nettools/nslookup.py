@@ -6,24 +6,31 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # -----
 ######
-import logging
-from PyQt6.QtCore import QObject, pyqtSignal, QThread
-from common.constants.view.tasks import labels, state, status
 
-from controller.configurations.tabs.network.networkcheck import (
+import logging
+from nslookup import Nslookup
+from urllib.parse import urlparse
+from shiboken6 import isValid
+
+from PySide6.QtCore import QObject, Signal, QThread
+from PySide6.QtWidgets import QMessageBox
+
+from fit_acquisition.task import Task
+from fit_common.gui.utils import State, Status
+from fit_common.gui.error import Error as ErrorView
+from fit_acquisition.lang import load_translations
+
+
+from fit_configurations.controller.tabs.network.networkcheck import (
     NetworkControllerCheck as NetworkCheckController,
 )
-
-from common.utility import nslookup
-from common.constants import logger
-
-from view.tasks.task import Task
 
 
 class NslookupWorker(QObject):
     logger = logging.getLogger("nslookup")
-    finished = pyqtSignal()
-    started = pyqtSignal()
+    finished = Signal()
+    started = Signal()
+    error = Signal(object)
 
     def set_options(self, options):
         self.url = options["url"]
@@ -31,10 +38,46 @@ class NslookupWorker(QObject):
         self.nslookup_enable_tcp = options["nslookup_enable_tcp"]
         self.nslookup_enable_verbose_mode = options["nslookup_enable_verbose_mode"]
 
+    def __nslookup(self, url, dns_server, enable_verbose_mode, enable_tcp):
+        try:
+            parsed_url = urlparse(url)
+            netloc = parsed_url.netloc
+
+            if not netloc:
+                self.error.emit(
+                    {
+                        "title": self.translations["NSLOOKUP_ERROR_TITLE"],
+                        "message": self.translations["MALFORMED_URL_ERROR"],
+                        "details": "",
+                    }
+                )
+
+            netloc = netloc.split(":")[0]
+
+            dns_query = Nslookup(
+                dns_servers=[dns_server], verbose=enable_verbose_mode, tcp=enable_tcp
+            )
+
+            ips_record = dns_query.dns_lookup(netloc)
+
+            if ips_record.response_full:
+                return "\n".join(map(str, ips_record.response_full))
+            else:
+                return self.translations["MALFORMED_URL_ERROR"].format(netloc)
+
+        except Exception as e:
+            self.error.emit(
+                {
+                    "title": self.translations["NSLOOKUP_ERROR_TITLE"],
+                    "message": self.translations["NSLOOKUP_EXECUTION_ERROR"],
+                    "details": str(e),
+                }
+            )
+
     def start(self):
         self.started.emit()
         self.logger.info(
-            nslookup(
+            self.__nslookup(
                 self.url,
                 self.nslookup_dns_server,
                 self.nslookup_enable_tcp,
@@ -48,7 +91,9 @@ class TaskNslookup(Task):
     def __init__(self, logger, progress_bar=None, status_bar=None, parent=None):
         super().__init__(logger, progress_bar, status_bar, parent)
 
-        self.label = labels.NSLOOKUP
+        self.translations = load_translations()
+
+        self.label = self.translations["NSLOOKUP"]
 
         self.worker_thread = QThread()
         self.worker = NslookupWorker()
@@ -57,7 +102,18 @@ class TaskNslookup(Task):
         self.worker.started.connect(self.__started)
         self.worker.finished.connect(self.__finished)
 
+        self.worker.error.connect(self.__handle_error)
+
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
+
+    def __handle_error(self, error):
+        error_dlg = ErrorView(
+            QMessageBox.Icon.Critical,
+            error.get("title"),
+            error.get("message"),
+            error.get("details"),
+        )
+        error_dlg.exec()
 
     @Task.options.getter
     def options(self):
@@ -72,21 +128,23 @@ class TaskNslookup(Task):
 
     def start(self):
         self.worker.set_options(self.options)
-        self.update_task(state.STARTED, status.PENDING)
-        self.set_message_on_the_statusbar(logger.NSLOOKUP_STARTED)
+        self.update_task(State.STARTED, Status.PENDING)
+        self.set_message_on_the_statusbar(self.translations["NSLOOKUP_STARTED"])
 
         self.worker_thread.start()
 
     def __started(self):
-        self.update_task(state.STARTED, status.SUCCESS)
+        self.update_task(State.STARTED, Status.SUCCESS)
         self.started.emit()
 
     def __finished(self):
-        self.logger.info(logger.NSLOOKUP_GET_INFO_URL.format(self.options["url"]))
-        self.set_message_on_the_statusbar(logger.NSLOOKUP_COMPLETED)
-        self.upadate_progress_bar()
+        self.logger.info(
+            self.translations["NSLOOKUP_GET_INFO_URL"].format(self.options["url"])
+        )
+        self.set_message_on_the_statusbar(self.translations["NSLOOKUP_COMPLETED"])
+        self.update_progress_bar()
 
-        self.update_task(state.COMPLETED, status.SUCCESS)
+        self.update_task(State.COMPLETED, Status.SUCCESS)
 
         self.finished.emit()
 
@@ -94,6 +152,7 @@ class TaskNslookup(Task):
         self.worker_thread.wait()
 
     def __destroyed_handler(self, _dict):
-        if self.worker_thread.isRunning():
-            self.worker_thread.quit()
-            self.worker_thread.wait()
+        if hasattr(self, "worker_thread") and isValid(self.worker_thread):
+            if self.worker_thread.isRunning():
+                self.worker_thread.quit()
+                self.worker_thread.wait()

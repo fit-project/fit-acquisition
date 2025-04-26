@@ -3,7 +3,6 @@
     "ACQUISITION_STOPPED" : "Acquisition stopped",
     "ACQUISITION_FINISHED" : "Acquisition finished",
     "NTP_ACQUISITION_TIME" : "NTP {} acquisition time: {}",
-    "NSLOOKUP": "Nslookup",
     "WHOIS": "Whois",
     "TRACEROUTE": "Traceroute",
     "SSLKEYLOG": "SSL Keylog",
@@ -31,11 +30,18 @@
     "SCREEN_RECORDER_COMPLETED_DETAILS": "Loop has been stopped and .avi file has been saved in the case folder",
     "SCREEN_RECORDER_ERROR_TITLE": "Screen recorder error.",
     "SCREEN_RECORDER_ERROR_MSG": "An error occurred during screen recorder acquisition! \nSee bellow for more detail.",
+    "MALFORMED_URL_ERROR": "Malformed URL: missing Network Location part.",
+    "NO_DNS_RESPONSE": "No DNS response for {}",
     "HEADERS": "Html Headers",
     "HEADERS_STARTED": "HEADERS started",
     "HEADERS_COMPLETED": "HEADERS completed",
     "HEADERS_GET_INFO_URL": "Get HEADERS info for URL: {}",
-    "HEADERS_ERROR_TITLE": "Headers error.",
+    "HEADERS_ERROR_TITLE": "HEADERS error",
     "HEADERS_CONNECTION_ERROR": "Error during the HTTP request! \nSee bellow for more detail.",
-    "HEADERS_MALFORMED_URL_ERROR": "Malformed URL: missing Network Location part."
+    "NSLOOKUP": "Nslookup",
+    "NSLOOKUP_GET_INFO_URL": "Get NSLOOKUP info for URL: {}",
+    "NSLOOKUP_STARTED": "NSLOOKUP started",
+    "NSLOOKUP_COMPLETED": "NSLOOKUP completed",
+    "NSLOOKUP_ERROR_TITLE": "NSLOOKUP error",
+    "NSLOOKUP_EXECUTION_ERROR": "Error during NSLOOKUP execution! \nSee bellow for more detail."
 }
