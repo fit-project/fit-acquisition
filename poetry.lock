@@ -197,7 +197,7 @@ resolved_reference = "c69bada5554a55e6414a66f1a9e4891d6b861f48"
 
 [[package]]
 name = "fit-common"
-version = "0.1.11"
+version = "0.1.12"
 description = "Shared code between modules of the FIT project"
 optional = false
 python-versions = ">=3.9,<3.13"
@@ -214,7 +214,7 @@ windows-tools = {version = "^2.5.0", markers = "sys_platform == \"win32\""}
 type = "git"
 url = "https://github.com/fit-project/fit-common.git"
 reference = "main"
-resolved_reference = "77f0d8518354b4f27f44a8fba1ded4d28fbf6d28"
+resolved_reference = "7a5d6e7015c123926e65c00f80c099e2d3978d25"
 
 [[package]]
 name = "fit-configurations"
