@@ -3,9 +3,7 @@
     "ACQUISITION_STOPPED" : "Acquisition stopped",
     "ACQUISITION_FINISHED" : "Acquisition finished",
     "NTP_ACQUISITION_TIME" : "NTP {} acquisition time: {}",
-    "WHOIS": "Whois",
     "SAVE_CASE_INFO": "Save Case Information",
-    "HASHFILE": "Calculate Hash File",
     "REPORTFILE": "Generate PDF Report",
     "TIMESTAMP": "Generate TIMESTAMP for the report",
     "ZIP_AND_REMOVE_FOLDER": "Zip and remove folder",
@@ -59,5 +57,17 @@
     "TRACEROUTE_COMPLETED": "TRACEROUTE completed",
     "TRACEROUTE_GET_INFO_URL": "Get TRACEROUTE info for URL: {}",
     "TRACEROUTE_ERROR_TITLE": "TRACEROUTE error",
-    "TRACEROUTE_EXECUTION_ERROR": "Error during TRACEROUTE execution!\nSee bellow for more detail."
+    "TRACEROUTE_EXECUTION_ERROR": "Error during TRACEROUTE execution!\nSee bellow for more detail.",
+    "WHOIS": "Whois",
+    "WHOIS_STARTED": "WHOIS started",
+    "WHOIS_COMPLETED": "WHOIS completed",
+    "WHOIS_GET_INFO_URL": "Get WHOIS info for URL: {}",
+    "WHOIS_ERROR_TITLE": "WHOIS error",
+    "WHOIS_DNS_RESOLUTION_ERROR": "DNS resolution error\nSee below for more details.",
+    "WHOIS_INVALID_DOMAIN_ERROR": "Invalid domain or domain extraction failed.",
+    "WHOIS_EXECUTION_ERROR": "Error during WHOIS execution!\nSee bellow for more detail.",
+    "HASHFILE": "Calculate HASH of the acquired files",
+    "CALCULATE_HASHFILE_STARTED": "Calculate HASH of the acquired files started",
+    "CALCULATE_HASHFILE_COMPLETED": "Calculate HASH of the acquired files completed",
+    "CALCULATE_HASHFILE": "Calculation of the HASH of the acquired files"
 }

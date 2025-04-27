@@ -9,20 +9,22 @@
 
 import logging
 import os
+import hashlib
+from shiboken6 import isValid
 
-from PyQt6.QtCore import QObject, pyqtSignal, QThread
-from common.constants.view.tasks import labels, state, status
 
-from common.utility import calculate_hash
-from common.constants import logger
+from PySide6.QtCore import QObject, Signal, QThread, QEventLoop, QTimer
 
-from view.tasks.task import Task
+
+from fit_acquisition.task import Task
+from fit_common.gui.utils import State, Status
+from fit_acquisition.lang import load_translations
 
 
 class HashWorker(QObject):
     logger = logging.getLogger("hashreport")
-    finished = pyqtSignal()
-    started = pyqtSignal()
+    finished = Signal()
+    started = Signal()
 
     @property
     def folder(self):
@@ -39,6 +41,14 @@ class HashWorker(QObject):
     @exclude_list.setter
     def exclude_list(self, exclude_list):
         self._exclude_list = exclude_list
+
+    def __calculate_hash(self, filename, algorithm):
+        with open(filename, "rb") as f:
+            file_hash = hashlib.new(algorithm)
+            while chunk := f.read(8192):
+                file_hash.update(chunk)
+
+            return file_hash.hexdigest()
 
     def start(self):
         self.started.emit()
@@ -58,11 +68,13 @@ class HashWorker(QObject):
                 self.logger.info(f"Name: {file}")
                 self.logger.info(f"Size: {file_stats.st_size}")
                 algorithm = "md5"
-                self.logger.info(f"MD5: {calculate_hash(filename, algorithm)}")
+                self.logger.info(f"MD5: {self.__calculate_hash(filename, algorithm)}")
                 algorithm = "sha1"
-                self.logger.info(f"SHA-1: {calculate_hash(filename, algorithm)}")
+                self.logger.info(f"SHA-1: {self.__calculate_hash(filename, algorithm)}")
                 algorithm = "sha256"
-                self.logger.info(f"SHA-256: {calculate_hash(filename, algorithm)}")
+                self.logger.info(
+                    f"SHA-256: {self.__calculate_hash(filename, algorithm)}"
+                )
 
         self.finished.emit()
 
@@ -71,7 +83,10 @@ class TaskHash(Task):
     def __init__(self, logger, progress_bar=None, status_bar=None, parent=None):
         super().__init__(logger, progress_bar, status_bar, parent)
 
-        self.label = labels.HASHFILE
+        self.translations = load_translations()
+
+        self.label = self.translations["HASHFILE"]
+
         self.worker_thread = QThread()
         self.worker = HashWorker()
         self.worker.moveToThread(self.worker_thread)
@@ -82,8 +97,10 @@ class TaskHash(Task):
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
 
     def start(self):
-        self.update_task(state.STARTED, status.PENDING)
-        self.set_message_on_the_statusbar(logger.CALCULATE_HASHFILE_STARTED)
+        self.update_task(State.STARTED, Status.PENDING)
+        self.set_message_on_the_statusbar(
+            self.translations["CALCULATE_HASHFILE_STARTED"]
+        )
         self.worker.folder = self.options["acquisition_directory"]
         self.worker.exclude_list = list()
         if "exclude_from_hash_calculation" in self.options:
@@ -92,22 +109,29 @@ class TaskHash(Task):
         self.worker_thread.start()
 
     def __started(self):
-        self.update_task(state.STARTED, status.SUCCESS)
+        self.update_task(State.STARTED, Status.SUCCESS)
         self.started.emit()
 
     def __finished(self):
-        self.logger.info(logger.CALCULATE_HASHFILE)
-        self.set_message_on_the_statusbar(logger.CALCULATE_HASHFILE_COMPLETED)
-        self.upadate_progress_bar()
+        self.logger.info(self.translations["CALCULATE_HASHFILE"])
+        self.set_message_on_the_statusbar(
+            self.translations["CALCULATE_HASHFILE_COMPLETED"]
+        )
+        self.update_progress_bar()
 
-        self.update_task(state.COMPLETED, status.SUCCESS)
+        self.update_task(State.COMPLETED, Status.SUCCESS)
 
         self.finished.emit()
+
+        loop = QEventLoop()
+        QTimer.singleShot(1000, loop.quit)
+        loop.exec()
 
         self.worker_thread.quit()
         self.worker_thread.wait()
 
     def __destroyed_handler(self, _dict):
-        if self.worker_thread.isRunning():
-            self.worker_thread.quit()
-            self.worker_thread.wait()
+        if hasattr(self, "worker_thread") and isValid(self.worker_thread):
+            if self.worker_thread.isRunning():
+                self.worker_thread.quit()
+                self.worker_thread.wait()

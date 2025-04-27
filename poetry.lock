@@ -197,7 +197,7 @@ resolved_reference = "c69bada5554a55e6414a66f1a9e4891d6b861f48"
 
 [[package]]
 name = "fit-common"
-version = "0.1.7"
+version = "0.1.11"
 description = "Shared code between modules of the FIT project"
 optional = false
 python-versions = ">=3.9,<3.13"
@@ -206,19 +206,15 @@ files = []
 develop = false
 
 [package.dependencies]
-nslookup = "^1.3.0"
 ntplib = "^0.4.0"
 PySide6 = "6.9.0"
-python-whois = "^0.9.5"
-requests = "^2.31"
-scapy = "^2.5.0"
 windows-tools = {version = "^2.5.0", markers = "sys_platform == \"win32\""}
 
 [package.source]
 type = "git"
 url = "https://github.com/fit-project/fit-common.git"
 reference = "main"
-resolved_reference = "d143ed790c581356421fff6561f4082b53791e05"
+resolved_reference = "77f0d8518354b4f27f44a8fba1ded4d28fbf6d28"
 
 [[package]]
 name = "fit-configurations"
@@ -1174,4 +1170,4 @@ tests = ["pytest"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.13"
-content-hash = "4f619a50416a4fb7611689d593bd08f436f6f1b0fad7545cfd1a0a039f7433c5"
+content-hash = "ff00997b504357e2a599b139abb3e32a159e9c0725ab8f7197ac8dd3a154db55"
