@@ -36,14 +36,15 @@ class ReportWorker(QObject):
 
     def start(self):
         self.started.emit()
-
         report = GenerateReport(self.folder, self.case_info)
+
         report.generate_pdf(
             self.type,
             get_ntp_date_and_time(NetworkControllerCheck().configuration["ntp_server"]),
         )
 
         self.finished.emit()
+
 
 
 class TaskReport(Task):
@@ -83,7 +84,6 @@ class TaskReport(Task):
         self.update_progress_bar()
 
         self.update_task(State.COMPLETED, Status.SUCCESS)
-
         self.finished.emit()
 
         loop = QEventLoop()

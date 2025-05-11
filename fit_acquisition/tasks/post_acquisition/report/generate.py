@@ -8,7 +8,6 @@
 ######
 
 import base64
-import fnmatch
 import os
 
 from jinja2 import Template
@@ -18,11 +17,13 @@ from xhtml2pdf import pisa
 from PyPDF2 import PdfMerger
 import zipfile
 
-from fit_configurations.controller.tabs.general.typesproceedings import (
-    TypesProceedings as TypesProceedingsController,
+from fit_configurations.controller.tabs.general.typesproceedings import TypesProceedings
+from fit_configurations.controller.tabs.packetcapture.packetcapture import PacketCapture
+from fit_configurations.controller.tabs.screenrecorder.screenrecorder import (
+    ScreenRecorder,
 )
 
-from fit_cases.model.case import Case
+
 from fit_common.core.utils import get_version
 from fit_configurations.utils import get_language
 
@@ -34,61 +35,22 @@ class GenerateReport:
         self.cases_folder_path = cases_folder_path
         self.output_front = os.path.join(self.cases_folder_path, "front_report.pdf")
         self.output_content = os.path.join(self.cases_folder_path, "content_report.pdf")
-        self.output_front_result = open(self.output_front, "w+b")
-        self.output_content_result = open(self.output_content, "w+b")
-        case = Case()
-        self.case_info = vars(case.get_from_id(case_info["id"]))
+        self.case_info = case_info
 
         language = get_language()
-
-        if language == "Italian":
-            self.translations = load_translations(lang="it")
-        else:
-            self.translations = load_translations()
+        self.translations = (
+            load_translations(lang="it")
+            if language == "Italian"
+            else load_translations()
+        )        
 
     def generate_pdf(self, type, ntp):
-        # PREPARING DATA TO FILL THE PDF
-        if type == "web":
-            try:
-                with open(os.path.join(self.cases_folder_path, "whois.txt"), "r") as f:
-                    whois_text = f.read()
-                    f.close()
-            except:
-                whois_text = self.translations["NOT_PRODUCED"]
-            if whois_text == "" or whois_text == "\n":
-                whois_text = self.translations["NOT_PRODUCED"]
-
-        hash_file_content = self.__hash_reader()
-        screenshot = self.__insert_screenshot()
-        video = self.__insert_video_hyperlink()
-
-        proceeding_type = TypesProceedingsController().get_proceeding_name_by_id(
-            self.case_info.get("proceeding_type", 0)
-        )
-
-        logo = self.case_info.get("logo_bin", "")
-        if logo is not None:
-            logo = (
-                '<div style="padding-bottom: 10px;"><img src="data:image/png;base64,'
-                + base64.b64encode(logo).decode("utf-8")
-                + '" height="'
-                + self.case_info.get("logo_height", "")
-                + '" width="'
-                + self.case_info.get("logo_width", "")
-                + '"></div>'
-            )
-        else:
-            logo = "<div></div>"
-
-        acquisition_files = self._acquisition_files_names()
-
-        zip_enum = self._zip_files_enum()
 
         logo_path = files("fit_assets.images") / "logo-640x640.png"
         logo_bytes = logo_path.read_bytes()
         logo_base64 = base64.b64encode(logo_bytes).decode("utf-8")
 
-        # FILLING FRONT PAGE WITH DATA
+        # Front Page
         template = Template(
             (files("fit_assets.templates") / "front.html").read_text(encoding="utf-8")
         )
@@ -101,303 +63,247 @@ class GenerateReport:
             version=get_version(),
         )
 
-        # FILLING TEMPLATE WITH DATA
-        if type == "web" and whois_text != self.translations["NOT_PRODUCED"]:
+        sections = []
 
-            template = Template(
-                (files("fit_assets.templates") / "template_web.html").read_text(
-                    encoding="utf-8"
-                )
-            )
-
-            content_index = template.render(
-                title=self.translations["TITLE"],
-                index=self.translations["INDEX"],
-                description=self.translations["DESCRIPTION"].format(
+        # FIT Description
+        sections.append(
+            {
+                "title": self.translations["T1"],
+                "type": "fit_description",
+                "content": self.translations["DESCRIPTION"].format(
                     self.translations["RELEASES_LINK"]
                 ),
-                t1=self.translations["T1"],
-                t2=self.translations["T2"],
-                case=self.translations["CASEINFO"],
-                casedata=self.translations["CASEDATA"],
-                case0=self.translations["CASE"],
-                case1=self.translations["LAWYER"],
-                case2=self.translations["OPERATOR"],
-                case3=self.translations["PROCEEDING"],
-                case4=self.translations["COURT"],
-                case5=self.translations["NUMBER"],
-                case6=self.translations["ACQUISITION_TYPE"],
-                case7=self.translations["ACQUISITION_DATE"],
-                case8=self.translations["NOTES"],
-                data0=str(self.case_info["name"] or "N/A"),
-                data1=str(self.case_info["lawyer_name"] or "N/A"),
-                data2=str(self.case_info["operator"] or "N/A"),
-                data3=proceeding_type,
-                data4=str(self.case_info["courthouse"] or "N/A"),
-                data5=str(self.case_info["proceeding_number"] or "N/A"),
-                data6=type,
-                data7=ntp,
-                data8=str(self.case_info["notes"] or "N/A").replace("\n", "<br>"),
-                t3=self.translations["T3"],
-                t3descr=self.translations["T3DESCR"],
-                whoisfile=whois_text,
-                t4=self.translations["T4"],
-                t4descr=self.translations["T4DESCR"],
-                name=self.translations["NAME"],
-                descr=self.translations["DESCR"],
-                avi=acquisition_files[
-                    fnmatch.filter(acquisition_files.keys(), "*.avi")[0]
-                ],
-                avid=self.translations["AVID"],
-                hash=acquisition_files["acquisition.hash"],
-                hashd=self.translations["HASHD"],
-                log=acquisition_files["acquisition.log"],
-                logd=self.translations["LOGD"],
-                pcap=acquisition_files["acquisition.pcap"],
-                pcapd=self.translations["PCAPD"],
-                zip=acquisition_files[
-                    fnmatch.filter(acquisition_files.keys(), "*.zip")[0]
-                ],
-                zipd=self.translations["ZIPD"],
-                whois=acquisition_files["whois.txt"],
-                whoisd=self.translations["WHOISD"],
-                headers=acquisition_files["headers.txt"],
-                headersd=self.translations["HEADERSD"],
-                nslookup=acquisition_files["nslookup.txt"],
-                nslookupd=self.translations["NSLOOKUPD"],
-                cer=acquisition_files["server.cer"],
-                cerd=self.translations["CERD"],
-                sslkey=acquisition_files["sslkey.log"],
-                sslkeyd=self.translations["SSLKEYD"],
-                traceroute=acquisition_files["traceroute.txt"],
-                tracerouted=self.translations["TRACEROUTED"],
-                t5=self.translations["T5"],
-                t5descr=self.translations["T5DESCR"],
-                file=hash_file_content,
-                t6=self.translations["T6"],
-                t6descr=self.translations["T6DESCR"],
-                filedata=zip_enum,
-                t7=self.translations["T7"],
-                t7descr=self.translations["T7DESCR"],
-                screenshot=screenshot,
-                t8=self.translations["T8"],
-                t8descr=self.translations["T8DESCR"],
-                video_hyperlink=video,
-                t9=self.translations["T9"],
-                t9descr=self.translations["T9DESCR"],
-                titlecc=self.translations["TITLECC"],
-                ccdescr=self.translations["CCDESCR"],
-                titleh=self.translations["TITLEH"],
-                hdescr=self.translations["HDESCR"],
-                page=self.translations["PAGE"],
-                of=self.translations["OF"],
-                logo=logo,
-            )
-            pdf_options = {
-                "page-size": "Letter",
-                "margin-top": "1in",
-                "margin-right": "1in",
-                "margin-bottom": "1in",
-                "margin-left": "1in",
             }
+        )
 
-            # create pdf front and content, merge them and remove merged files
-            pisa.CreatePDF(
-                front_index, dest=self.output_front_result, options=pdf_options
-            )
-            pisa.CreatePDF(
-                content_index, dest=self.output_content_result, options=pdf_options
-            )
-
-        elif type == "web" and whois_text == self.translations["NOT_PRODUCED"]:
-
-            template = Template(
-                (
-                    files("fit_assets.templates") / "template_web_no_whois.html"
-                ).read_text(encoding="utf-8")
-            )
-
-            content_index = template.render(
-                title=self.translations["TITLE"],
-                index=self.translations["INDEX"],
-                description=self.translations["DESCRIPTION"].format(
-                    self.translations["RELEASES_LINK"]
-                ),
-                t1=self.translations["T1"],
-                t2=self.translations["T2"],
-                case=self.translations["CASEINFO"],
-                casedata=self.translations["CASEDATA"],
-                case0=self.translations["CASE"],
-                case1=self.translations["LAWYER"],
-                case2=self.translations["OPERATOR"],
-                case3=self.translations["PROCEEDING"],
-                case4=self.translations["COURT"],
-                case5=self.translations["NUMBER"],
-                case6=self.translations["ACQUISITION_TYPE"],
-                case7=self.translations["ACQUISITION_DATE"],
-                case8=self.translations["NOTES"],
-                data0=str(self.case_info["name"] or "N/A"),
-                data1=str(self.case_info["lawyer_name"] or "N/A"),
-                data2=str(self.case_info["operator"] or "N/A"),
-                data3=proceeding_type,
-                data4=str(self.case_info["courthouse"] or "N/A"),
-                data5=str(self.case_info["proceeding_number"] or "N/A"),
-                data6=type,
-                data7=ntp,
-                data8=str(self.case_info["notes"] or "N/A").replace("\n", "<br>"),
-                t4=self.translations["T4"],
-                t4descr=self.translations["T4DESCR"],
-                name=self.translations["NAME"],
-                descr=self.translations["DESCR"],
-                avi=acquisition_files[
-                    fnmatch.filter(acquisition_files.keys(), "*.avi")[0]
-                ],
-                avid=self.translations["AVID"],
-                hash=acquisition_files["acquisition.hash"],
-                hashd=self.translations["HASHD"],
-                log=acquisition_files["acquisition.log"],
-                logd=self.translations["LOGD"],
-                pcap=acquisition_files["acquisition.pcap"],
-                pcapd=self.translations["PCAPD"],
-                zip=acquisition_files[
-                    fnmatch.filter(acquisition_files.keys(), "*.zip")[0]
-                ],
-                zipd=self.translations["ZIPD"],
-                whois=acquisition_files["whois.txt"],
-                whoisd=self.translations["WHOISD"],
-                headers=acquisition_files["headers.txt"],
-                headersd=self.translations["HEADERSD"],
-                nslookup=acquisition_files["nslookup.txt"],
-                nslookupd=self.translations["NSLOOKUPD"],
-                cer=acquisition_files["server.cer"],
-                cerd=self.translations["CERD"],
-                sslkey=acquisition_files["sslkey.log"],
-                sslkeyd=self.translations["SSLKEYD"],
-                traceroute=acquisition_files["traceroute.txt"],
-                tracerouted=self.translations["TRACEROUTED"],
-                t5=self.translations["T5"],
-                t5descr=self.translations["T5DESCR"],
-                file=hash_file_content,
-                t6=self.translations["T6"],
-                t6descr=self.translations["T6DESCR"],
-                filedata=zip_enum,
-                t7=self.translations["T7"],
-                t7descr=self.translations["T7DESCR"],
-                screenshot=screenshot,
-                t8=self.translations["T8"],
-                t8descr=self.translations["T8DESCR"],
-                video_hyperlink=video,
-                t9=self.translations["T9"],
-                t9descr=self.translations["T9DESCR"],
-                titlecc=self.translations["TITLECC"],
-                ccdescr=self.translations["CCDESCR"],
-                titleh=self.translations["TITLEH"],
-                hdescr=self.translations["HDESCR"],
-                page=self.translations["PAGE"],
-                of=self.translations["OF"],
-                logo=logo,
-            )
-
-            pdf_options = {
-                "page-size": "Letter",
-                "margin-top": "1in",
-                "margin-right": "1in",
-                "margin-bottom": "1in",
-                "margin-left": "1in",
+        # Digital Forensics
+        sections.append(
+            {
+                "title": self.translations["T4"],
+                "type": "digital_forensics",
+                "description": self.translations["T4DESCR"],
+                "subtitles": {
+                    "cc": self.translations["TITLECC"],
+                    "h": self.translations["TITLEH"],
+                },
+                "contents": {
+                    "cc": self.translations["CCDESCR"],
+                    "h": self.translations["HDESCR"],
+                },
             }
-            # create pdf front and content, merge them and remove merged files
-            pisa.CreatePDF(
-                front_index, dest=self.output_front_result, options=pdf_options
-            )
-            pisa.CreatePDF(
-                content_index, dest=self.output_content_result, options=pdf_options
-            )
+        )
 
-        if (
-            type == "email"
-            or type == "instagram"
-            or type == "video"
-            or type == "entire_website"
-        ):
-
-            template = Template(
-                (files("fit_assets.templates") / "template_email.html").read_text(
-                    encoding="utf-8"
-                )
-            )
-
-            content_index = template.render(
-                title=self.translations["TITLE"],
-                index=self.translations["INDEX"],
-                description=self.translations["DESCRIPTION"].format(
-                    self.translations["RELEASES_LINK"]
+        # Case Information
+        case_rows = [
+            {
+                "value": self.translations["CASE"],
+                "desc": self.case_info.get("name", "").strip() or "N/A",
+            },
+            {
+                "value": self.translations["LAWYER"],
+                "desc": self.case_info.get("lawyer_name", "").strip() or "N/A",
+            },
+            {
+                "value": self.translations["OPERATOR"],
+                "desc": self.case_info.get("operator", "").strip() or "N/A",
+            },
+            {
+                "value": self.translations["PROCEEDING"],
+                "desc": str(
+                    TypesProceedings().get_proceeding_name_by_id(
+                        self.case_info.get("proceeding_type", 0)
+                    )
                 ),
-                t1=self.translations["T1"],
-                t2=self.translations["T2"],
-                case=self.translations["CASEINFO"],
-                casedata=self.translations["CASEDATA"],
-                case0=self.translations["CASE"],
-                case1=self.translations["LAWYER"],
-                case2=self.translations["OPERATOR"],
-                case3=self.translations["PROCEEDING"],
-                case4=self.translations["COURT"],
-                case5=self.translations["NUMBER"],
-                case6=self.translations["ACQUISITION_TYPE"],
-                case7=self.translations["ACQUISITION_DATE"],
-                case8=self.translations["NOTES"],
-                data0=str(self.case_info["name"] or "N/A"),
-                data1=str(self.case_info["lawyer_name"] or "N/A"),
-                data2=str(self.case_info["operator"] or "N/A"),
-                data3=proceeding_type,
-                data4=str(self.case_info["courthouse"] or "N/A"),
-                data5=str(self.case_info["proceeding_number"] or "N/A"),
-                data6=type,
-                data7=ntp,
-                data8=str(self.case_info["notes"] or "N/A").replace("\n", "<br>"),
-                t4=self.translations["T4"],
-                t4descr=self.translations["T4DESCR"],
-                name=self.translations["NAME"],
-                descr=self.translations["DESCR"],
-                hash=acquisition_files["acquisition.hash"],
-                hashd=self.translations["HASHD"],
-                log=acquisition_files["acquisition.log"],
-                logd=self.translations["LOGD"],
-                zip=acquisition_files[
-                    fnmatch.filter(acquisition_files.keys(), "*.zip")[0]
-                ],
-                zipd=self.translations["ZIPD"],
-                t5=self.translations["T5"],
-                t5descr=self.translations["T5DESCR"],
-                file=hash_file_content,
-                t6=self.translations["T6"],
-                t6descr=self.translations["T6DESCR"],
-                filedata=zip_enum,
-                t7=self.translations["T7"],
-                t7descr=self.translations["T7DESCR"],
-                titlecc=self.translations["TITLECC"],
-                ccdescr=self.translations["CCDESCR"],
-                titleh=self.translations["TITLEH"],
-                hdescr=self.translations["HDESCR"],
-                page=self.translations["PAGE"],
-                of=self.translations["OF"],
-                logo=logo,
+            },
+            {
+                "value": self.translations["COURT"],
+                "desc": self.case_info.get("courthouse", "").strip() or "N/A",
+            },
+            {
+                "value": self.translations["NUMBER"],
+                "desc": self.case_info.get("proceeding_number", "").strip() or "N/A",
+            },
+            {"value": self.translations["ACQUISITION_TYPE"], "desc": type},
+            {"value": self.translations["ACQUISITION_DATE"], "desc": ntp},
+        ]
+
+        sections.append(
+            {
+                "title": self.translations["T2"],
+                "type": "case_info",
+                "description": "",
+                "columns" : [self.translations["CASEINFO"], self.translations["CASEDATA"]],
+                "rows": case_rows,
+                "note": self.case_info.get("notes", "").strip() or "N/A",
+            }
+        )
+
+        # Company Logo
+        logo = self.case_info.get("logo_bin", "").strip()
+        if logo:
+            logo = (
+                '<div style="padding-bottom: 10px;"><img src="data:image/png;base64,'
+                + base64.b64encode(logo).decode("utf-8")
+                + '" height="'
+                + self.case_info.get("logo_height", "")
+                + '" width="'
+                + self.case_info.get("logo_width", "")
+                + '"></div>'
             )
-            # create pdf front and content, merge them and remove merged files
-            pisa.CreatePDF(front_index, dest=self.output_front_result)
-            pisa.CreatePDF(content_index, dest=self.output_content_result)
+        else:
+            logo = "<div></div>"
+
+        # Acquisition Files
+        acquisition_files = self._acquisition_files_names()
+        file_checks = [
+            (ScreenRecorder().options.get("filename"), self.translations["AVID"]),
+            ("acquisition.hash", self.translations["HASHD"]),
+            ("acquisition.log", self.translations["LOGD"]),
+            (PacketCapture().options.get("filename"), self.translations["PCAPD"]),
+            ("acquisition.zip", self.translations["ZIPD"]),
+            ("whois.txt", self.translations["WHOISD"]),
+            ("headers.txt", self.translations["HEADERSD"]),
+            ("nslookup.txt", self.translations["NSLOOKUPD"]),
+            ("server.cer", self.translations["CERD"]),
+            ("sslkey.log", self.translations["SSLKEYD"]),
+            ("traceroute.txt", self.translations["TRACEROUTED"]),
+        ]
+
+        file_rows = [
+            {"value": acquisition_files[file], "desc": desc}
+            for file, desc in file_checks
+            if file in acquisition_files and acquisition_files[file]
+        ]
+
+        sections.append(
+            {
+                "title": self.translations["T5"],
+                "type": "file_info",
+                "description": self.translations["T5DESCR"],
+                "columns" : [self.translations["NAME"], self.translations["DESCR"]],
+                "rows": file_rows,
+                "note": "",
+            }
+        )
+
+        # ZIP Content
+        zip_enum = self._zip_files_enum()
+        if zip_enum:
+            sections.append(
+                {
+                    "title": self.translations["T7"],
+                    "type": "zip_content",
+                    "description": self.translations["T7DESCR"],
+                    "content": zip_enum,
+                }
+            )
+
+        # hash
+        hash_content = self.__hash_reader()
+        if hash_content:
+            sections.append(
+                {
+                    "title": self.translations["T6"],
+                    "type": "hash",
+                    "description": self.translations["T6DESCR"],
+                    "content": hash_content,
+                }
+            )
+
+        # whois
+        whois_content = self.__read_file("whois.txt")
+        if whois_content:
+            sections.append(
+                {
+                    "title": self.translations["T3"],
+                    "type": "whois",
+                    "description": self.translations["T3DESCR"],
+                    "content": whois_content,
+                }
+            )
+
+        # Screenshots
+        screenshot_content = self.__insert_screenshot()
+        if screenshot_content:
+            sections.append(
+                {
+                    "title": self.translations["T8"],
+                    "type": "screenshot",
+                    "description": self.translations["T8DESCR"],
+                    "content": screenshot_content,
+                }
+            )
+        
+
+        # Video
+        video_content = self.__insert_video_hyperlink()
+        if video_content:
+            sections.append(
+                {
+                    "title": self.translations["T9"],
+                    "type": "video",
+                    "description": self.translations["T9DESCR"],
+                    "content": video_content,
+                }
+            )
+        
+
+        template = Template(
+            (files("fit_assets.templates") / "content.html").read_text(encoding="utf-8")
+        )
+
+        content_index = template.render(
+            title=self.translations["TITLE"],
+            t1=self.translations["T1"],
+            index=self.translations["INDEX"],
+            sections=sections,
+            note=self.translations["NOTE"],
+            logo=logo,
+            page=self.translations["PAGE"],
+            of=self.translations["OF"],
+        )
+
+        pdf_options = {
+            "page-size": "Letter",
+            "margin-top": "1in",
+            "margin-right": "1in",
+            "margin-bottom": "1in",
+            "margin-left": "1in",
+        }
+
+        # create pdf front and content, merge them and remove merged files
+        with open(self.output_front, "w+b") as front_result:
+            pisa.CreatePDF(front_index, dest=front_result, options=pdf_options)
+
+        with open(self.output_content, "w+b") as content_result:
+            pisa.CreatePDF(content_index, dest=content_result, options=pdf_options)
 
         merger = PdfMerger()
-        merger.append(self.output_front_result)
-        merger.append(self.output_content_result)
+        merger.append(self.output_front)
+        merger.append(self.output_content)
 
         merger.write(os.path.join(self.cases_folder_path, "acquisition_report.pdf"))
         merger.close()
-        self.output_content_result.close()
-        self.output_front_result.close()
+
         if os.path.exists(self.output_front):
             os.remove(self.output_front)
         if os.path.exists(self.output_content):
             os.remove(self.output_content)
+
+    def __read_file(self, filename):
+        try:
+            file_path = os.path.join(self.cases_folder_path, filename)
+            if os.path.getsize(file_path) == 0:
+                return None
+            with open(file_path, "r") as f:
+                content = f.read()
+                return content if content.strip() else None
+        except (FileNotFoundError, OSError):
+            return None
+        except FileNotFoundError:
+            return None
+        except FileNotFoundError:
+            return None
 
     def _acquisition_files_names(self):
         acquisition_files = {}
@@ -405,34 +311,42 @@ class GenerateReport:
         for file in files:
             acquisition_files[file] = file
 
-        if not any(value.endswith(".avi") for value in acquisition_files.values()):
-            acquisition_files["acquisition.avi"] = self.translations["NOT_PRODUCED"]
-        if not "acquisition.hash" in acquisition_files.values():
-            acquisition_files["acquisition.hash"] = self.translations["NOT_PRODUCED"]
-        if not "acquisition.log" in acquisition_files.values():
-            acquisition_files["acquisition.log"] = self.translations["NOT_PRODUCED"]
-        if not any(value.endswith(".pcap") for value in acquisition_files.values()):
-            acquisition_files["acquisition.pcap"] = self.translations["NOT_PRODUCED"]
-        if not any(value.endswith(".zip") for value in acquisition_files.values()):
-            acquisition_files["acquisition.zip"] = self.translations["NOT_PRODUCED"]
-        if not "whois.txt" in acquisition_files.values():
-            acquisition_files["whois.txt"] = self.translations["NOT_PRODUCED"]
-        if not "headers.txt" in acquisition_files.values():
-            acquisition_files["headers.txt"] = self.translations["NOT_PRODUCED"]
-        if not "nslookup.txt" in acquisition_files.values():
-            acquisition_files["nslookup.txt"] = self.translations["NOT_PRODUCED"]
-        if not "server.cer" in acquisition_files.values():
-            acquisition_files["server.cer"] = self.translations["NOT_PRODUCED"]
-        if not "sslkey.log" in acquisition_files.values():
-            acquisition_files["sslkey.log"] = self.translations["NOT_PRODUCED"]
-        if not "traceroute.txt" in acquisition_files.values():
-            acquisition_files["traceroute.txt"] = self.translations["NOT_PRODUCED"]
+        screen_recorder_filename = ScreenRecorder().options.get("filename")
+        packet_capture_filename = PacketCapture().options.get("filename")
+
+        file_checks = [
+            screen_recorder_filename,
+            "acquisition.hash",
+            "acquisition.log",
+            packet_capture_filename,
+            "acquisition.zip",
+            "whois.txt",
+            "headers.txt",
+            "nslookup.txt",
+            "server.cer",
+            "sslkey.log",
+            "traceroute.txt",
+        ]
+
+        for filename in file_checks:
+            matching_files = [
+                file for file in acquisition_files.values() if file.startswith(filename)
+            ]
+
+            if not matching_files:
+                acquisition_files.pop(filename, None)
+            else:
+                actual_file = matching_files[0]
+                if self.__read_file(actual_file) is None:
+                    acquisition_files[actual_file] = self.translations[
+                        "EMPTY_FILE"
+                    ].format(actual_file)
 
         return acquisition_files
 
     def _zip_files_enum(self):
-        zip_enum = ""
-        zip_dir = ""
+        zip_enum = None
+        zip_dir = None
         # getting zip folder and passing file names and dimensions to the template
         for fname in os.listdir(self.cases_folder_path):
             if fname.endswith(".zip"):
@@ -456,21 +370,25 @@ class GenerateReport:
         return zip_enum
 
     def __hash_reader(self):
-        hash_text = ""
-        with open(
-            os.path.join(
-                self.cases_folder_path,
-                "acquisition.hash",
-            ),
-            "r",
-            encoding="latin-1",
-        ) as f:
-            for line in f:
-                hash_text += "<p>" + line + "</p>"
+        hash_text = None
+        filename = "acquisition.hash"
+
+        if self.__read_file(filename):
+            with open(
+                os.path.join(
+                    self.cases_folder_path,
+                    filename,
+                ),
+                "r",
+                encoding="latin-1",
+            ) as f:
+                for line in f:
+                    hash_text += "<p>" + line + "</p>"
+
         return hash_text
 
     def __insert_screenshot(self):
-        screenshot_text = ""
+        screenshot_text = None
         screenshots_path = os.path.join(self.cases_folder_path, "screenshot")
 
         if os.path.isdir(screenshots_path):
@@ -530,14 +448,25 @@ class GenerateReport:
         files = [f.name for f in os.scandir(self.cases_folder_path) if f.is_file()]
         for file in files:
             acquisition_files[file] = file
-        if not any(value.endswith(".avi") for value in acquisition_files.values()):
-            hyperlink = self.translations["NOT_PRODUCED"]
-        else:
+
+        screen_recorder_filename = ScreenRecorder().options.get("filename")
+
+        matching_files = [
+            file
+            for file in acquisition_files.values()
+            if file.startswith(screen_recorder_filename)
+        ]
+
+        if matching_files:
+            actual_filename = matching_files[0]
             hyperlink = (
                 '<a href="file://'
-                + self.cases_folder_path
+                + os.path.join(self.cases_folder_path, actual_filename)
                 + '">'
                 + self.translations["VIDEO_LINK"]
                 + "</a>"
             )
+        else:
+            hyperlink = None
+
         return hyperlink
