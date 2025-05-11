@@ -13,16 +13,19 @@ import unittest
 import logging
 
 from PySide6 import QtWidgets
+from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QEventLoop
 from PySide6.QtTest import QSignalSpy
 
 from fit_common.gui.utils import State, Status
 from fit_common.core.utils import resolve_path
 from fit_acquisition.lang import load_translations
+
 from fit_acquisition.tasks.post_acquisition.report.task import TaskReport
+
 from fit_acquisition.tests.tasks.tasks_ui import Ui_MainWindow
 
-app = QtWidgets.QApplication(sys.argv)
+app = QApplication(sys.argv)
 
 from fit_configurations.logger import LogConfigTools
 
@@ -53,7 +56,7 @@ class TaskReportTest(unittest.TestCase):
             "name": "Go out",
             "lawyer_name": "",
             "operator": "",
-            "proceeding_type": 5,
+            "proceeding_type": 1,
             "courthouse": "",
             "proceeding_number": "",
             "notes": "",
