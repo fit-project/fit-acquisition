@@ -12,21 +12,25 @@ import os
 import requests
 from rfc3161ng.api import RemoteTimestamper
 
-from PyQt6.QtCore import QObject, pyqtSignal, QThread
-from common.constants.view.tasks import labels, state, status
 
-from view.tasks.task import Task
+from shiboken6 import isValid
 
-from controller.configurations.tabs.timestamp.timestamp import (
+
+from PySide6.QtCore import QObject, Signal, QThread, QEventLoop, QTimer
+
+
+from fit_acquisition.task import Task
+from fit_common.gui.utils import State, Status
+from fit_acquisition.lang import load_translations
+
+from fit_configurations.controller.tabs.timestamp.timestamp import (
     Timestamp as TimestampController,
 )
 
-from common.constants import logger
-
 
 class TimestampWorker(QObject):
-    finished = pyqtSignal()
-    started = pyqtSignal()
+    finished = Signal()
+    started = Signal()
 
     def __init__(self, parent=None):
         QObject.__init__(self, parent=parent)
@@ -71,7 +75,9 @@ class TaskTimestamp(Task):
     def __init__(self, logger, progress_bar=None, status_bar=None, parent=None):
         super().__init__(logger, progress_bar, status_bar, parent)
 
-        self.label = labels.TIMESTAMP
+        self.translations = load_translations()
+
+        self.label = self.translations["TIMESTAMP"]
 
         self.worker_thread = QThread()
         self.worker = TimestampWorker()
@@ -97,31 +103,36 @@ class TaskTimestamp(Task):
 
     def start(self):
         self.worker.set_options(self.options)
-        self.update_task(state.STARTED, status.PENDING)
-        self.set_message_on_the_statusbar(logger.TIMESTAMP_STARTED)
+        self.update_task(State.STARTED, Status.PENDING)
+        self.set_message_on_the_statusbar(self.translations["TIMESTAMP_STARTED"])
         self.worker_thread.start()
 
     def __started(self):
-        self.update_task(state.STARTED, status.SUCCESS)
+        self.update_task(State.STARTED, Status.SUCCESS)
         self.started.emit()
 
     def __finished(self):
         self.logger.info(
-            logger.TIMESTAMP_APPLY.format(
+            self.translations["TIMESTAMP_APPLY"].format(
                 self.options["pdf_filename"], self.options["server_name"]
             )
         )
-        self.set_message_on_the_statusbar(logger.TIMESTAMP_COMPLETED)
-        self.upadate_progress_bar()
+        self.set_message_on_the_statusbar(self.translations["TIMESTAMP_COMPLETED"])
+        self.update_progress_bar()
 
-        self.update_task(state.COMPLETED, status.SUCCESS)
+        self.update_task(State.COMPLETED, Status.SUCCESS)
 
         self.finished.emit()
+
+        loop = QEventLoop()
+        QTimer.singleShot(1000, loop.quit)
+        loop.exec()
 
         self.worker_thread.quit()
         self.worker_thread.wait()
 
     def __destroyed_handler(self, _dict):
-        if self.worker_thread.isRunning():
-            self.worker_thread.quit()
-            self.worker_thread.wait()
+        if hasattr(self, "worker_thread") and isValid(self.worker_thread):
+            if self.worker_thread.isRunning():
+                self.worker_thread.quit()
+                self.worker_thread.wait()

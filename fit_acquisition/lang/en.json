@@ -3,7 +3,6 @@
     "ACQUISITION_STOPPED" : "Acquisition stopped",
     "ACQUISITION_FINISHED" : "Acquisition finished",
     "NTP_ACQUISITION_TIME" : "NTP {} acquisition time: {}",
-    "TIMESTAMP": "Generate TIMESTAMP for the report",
     "ZIP_AND_REMOVE_FOLDER": "Zip and remove folder",
     "PEC_AND_DOWNLOAD_EML": "PEC and EML file",
     "PEC": "Send the PDF Report by PEC",
@@ -130,5 +129,9 @@
     "ZIPD": "Archive Containing the Acquisition",
     "SAVE_CASE_INFO": "Save case information on json file",
     "SAVE_CASE_INFO_STARTED": "Save case information started",
-    "SAVE_CASE_INFO_COMPLETED":"Save case information completed"
+    "SAVE_CASE_INFO_COMPLETED":"Save case information completed",
+    "TIMESTAMP": "Generate TIMESTAMP for the report",
+    "TIMESTAMP_STARTED": "TIMESTAMP started",
+    "TIMESTAMP_COMPLETED": "TIMESTAMP completed",
+    "TIMESTAMP_APPLY": "Apply timestamp to {} from server {}"
 }
