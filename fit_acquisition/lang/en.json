@@ -3,7 +3,6 @@
     "ACQUISITION_STOPPED" : "Acquisition stopped",
     "ACQUISITION_FINISHED" : "Acquisition finished",
     "NTP_ACQUISITION_TIME" : "NTP {} acquisition time: {}",
-    "SAVE_CASE_INFO": "Save Case Information",
     "TIMESTAMP": "Generate TIMESTAMP for the report",
     "ZIP_AND_REMOVE_FOLDER": "Zip and remove folder",
     "PEC_AND_DOWNLOAD_EML": "PEC and EML file",
@@ -128,5 +127,8 @@
     "TRACEROUTED": "Packet Traceroute",
     "VIDEO_LINK": "Link to the video",
     "WHOISD": "Whois File",
-    "ZIPD": "Archive Containing the Acquisition"
+    "ZIPD": "Archive Containing the Acquisition",
+    "SAVE_CASE_INFO": "Save case information on json file",
+    "SAVE_CASE_INFO_STARTED": "Save case information started",
+    "SAVE_CASE_INFO_COMPLETED":"Save case information completed"
 }
