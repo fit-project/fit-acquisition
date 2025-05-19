@@ -7,29 +7,33 @@
 # -----
 ######
 
-from PyQt6 import QtWidgets
-from PyQt6.QtCore import QObject, pyqtSignal, QThread, QEventLoop, QTimer
-from common.constants.view.tasks import labels, state, status
+from shiboken6 import isValid
 
-from view.tasks.task import Task
-from view.tasks.class_names import *
-from view.error import Error as ErrorView
+from PySide6 import QtWidgets
+from PySide6.QtCore import QObject, Signal, QThread, QEventLoop, QTimer
 
-from controller.pec import Pec as PecController
-from controller.configurations.tabs.pec.pec import Pec as PecConfigController
 
-from common.constants.view.pec import pec
-from common.constants import logger
+from fit_acquisition.task import Task
+from fit_common.gui.utils import State, Status
+from enum import Enum
+from fit_acquisition.lang import load_translations
+from fit_common.gui.error import Error as ErrorView
+
+from fit_configurations.controller.tabs.pec.pec import Pec as PecConfigController
+
+
+from fit_acquisition.tasks.post_acquisition.pec.pec import Pec
 
 
 class PecAndDownloadEmlWorker(QObject):
-    sentpec = pyqtSignal(str)
-    downloadedeml = pyqtSignal(str)
-    error = pyqtSignal(object)
-    started = pyqtSignal()
+    sentpec = Signal(Enum)
+    downloadedeml = Signal(str)
+    error = Signal(object)
+    started = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.translations = load_translations()
 
     def set_options(self, options):
         self.options = PecConfigController().options
@@ -38,9 +42,9 @@ class PecAndDownloadEmlWorker(QObject):
         self.options["type"] = options["type"]
 
     def send(self):
-        __status = status.SUCCESS
+        status = Status.SUCCESS
 
-        self.pec_controller = PecController(
+        self.pec_controller = Pec(
             self.options.get("pec_email"),
             self.options.get("password"),
             self.options.get("type"),
@@ -56,20 +60,21 @@ class PecAndDownloadEmlWorker(QObject):
             self.pec_controller.send_pec()
 
         except Exception as e:
-            __status = status.FAIL
+
+            status = Status.FAIL
             self.error.emit(
                 {
-                    "title": pec.LOGIN_FAILED,
-                    "message": pec.SMTP_FAILED_MGS,
+                    "title": self.translations["LOGIN_FAILED"],
+                    "message": self.translations["SMTP_FAILED_MGS"],
                     "details": str(e),
                 }
             )
 
-        self.sentpec.emit(__status)
+        self.sentpec.emit(status)
 
     def download_eml(self):
         for i in range(self.options.get("retries")):
-            __status = status.FAIL
+            status = Status.FAIL
 
             # whait for 8 seconds
             loop = QEventLoop()
@@ -78,26 +83,29 @@ class PecAndDownloadEmlWorker(QObject):
 
             try:
                 if self.pec_controller.retrieve_eml():
-                    __status = status.SUCCESS
+                    status = Status.SUCCESS
                     break
             except Exception as e:
                 self.error.emit(
                     {
-                        "title": pec.LOGIN_FAILED,
-                        "message": pec.IMAP_FAILED_MGS,
+                        "title": self.translations["LOGIN_FAILED"],
+                        "message": self.translations["IMAP_FAILED_MGS"],
                         "details": str(e),
                     }
                 )
                 break
 
-        self.downloadedeml.emit(__status)
+        self.downloadedeml.emit(status)
 
 
 class TaskPecAndDownloadEml(Task):
     def __init__(self, logger, progress_bar=None, status_bar=None, parent=None):
         super().__init__(logger, progress_bar, status_bar, parent)
 
-        self.label = labels.PEC_AND_DOWNLOAD_EML
+        self.translations = load_translations()
+
+        self.label = self.translations["PEC_AND_DOWNLOAD_EML"]
+
         self.worker_thread = QThread()
         self.worker = PecAndDownloadEmlWorker()
         self.worker.moveToThread(self.worker_thread)
@@ -108,12 +116,12 @@ class TaskPecAndDownloadEml(Task):
         self.worker.downloadedeml.connect(self.__is_eml_downloaded)
         self.sub_tasks = [
             {
-                "label": labels.PEC,
+                "label": self.translations["PEC"],
                 "state": self.state,
                 "status": self.status,
             },
             {
-                "label": labels.EML,
+                "label": self.translations["EML"],
                 "state": self.state,
                 "status": self.status,
             },
@@ -123,8 +131,10 @@ class TaskPecAndDownloadEml(Task):
 
     def start(self):
         self.worker.set_options(self.options)
-        self.update_task(state.STARTED, status.PENDING)
-        self.set_message_on_the_statusbar(logger.PEC_AND_DOWNLOAD_EML_STARTED)
+        self.update_task(State.STARTED, Status.PENDING)
+        self.set_message_on_the_statusbar(
+            self.translations["PEC_AND_DOWNLOAD_EML_STARTED"]
+        )
         self.worker_thread.start()
 
     def __handle_error(self, error):
@@ -137,56 +147,81 @@ class TaskPecAndDownloadEml(Task):
         error_dlg.exec()
 
     def __started(self):
-        self.update_task(state.STARTED, status.SUCCESS)
+        self.update_task(State.STARTED, Status.SUCCESS)
         self.started.emit()
 
-    def __is_pec_sent(self, __status):
+    def __is_pec_sent(self, status):
         sub_task_sent_pec = next(
-            (task for task in self.sub_tasks if task.get("label") == labels.PEC), None
+            (
+                task
+                for task in self.sub_tasks
+                if task.get("label") == self.translations["PEC"]
+            ),
+            None,
         )
         if sub_task_sent_pec:
-            sub_task_sent_pec["state"] = state.COMPLETED
-            sub_task_sent_pec["status"] = __status
+            sub_task_sent_pec["state"] = State.COMPLETED
+            sub_task_sent_pec["status"] = status
 
         self.logger.info(
-            logger.PEC_SENT.format(self.worker.options.get("pec_email"), __status)
+            self.translations["PEC_SENT"].format(
+                self.worker.options.get("pec_email"), status.value
+            )
         )
         self.set_message_on_the_statusbar(
-            logger.PEC_SENT.format(self.worker.options.get("pec_email"), __status)
+            self.translations["PEC_SENT"].format(
+                self.worker.options.get("pec_email"), status.value
+            )
         )
-        self.upadate_progress_bar()
+        self.update_progress_bar()
 
-        if __status == status.SUCCESS:
+        if status == Status.SUCCESS:
             self.worker.download_eml()
         else:
-            self.logger.info(logger.PEC_HAS_NOT_BEEN_SENT_CANNOT_DOWNLOAD_EML)
+            self.logger.info(
+                self.translations["PEC_HAS_NOT_BEEN_SENT_CANNOT_DOWNLOAD_EML"]
+            )
             self.__finished()
 
-    def __is_eml_downloaded(self, __status):
+    def __is_eml_downloaded(self, status):
         sub_task_download_eml = next(
-            (task for task in self.sub_tasks if task.get("label") == labels.EML), None
+            (
+                task
+                for task in self.sub_tasks
+                if task.get("label") == self.translations["EML"]
+            ),
+            None,
         )
         if sub_task_download_eml:
-            sub_task_download_eml["state"] = state.COMPLETED
-            sub_task_download_eml["status"] = __status
+            sub_task_download_eml["state"] = State.COMPLETED
+            sub_task_download_eml["status"] = status
 
-        self.set_message_on_the_statusbar(logger.EML_DOWNLOAD.format(__status))
-        self.upadate_progress_bar()
+        self.set_message_on_the_statusbar(
+            self.translations["EML_DOWNLOAD"].format(status)
+        )
+        self.update_progress_bar()
         self.__finished()
 
     def __finished(self):
-        self.label = labels.PEC_AND_DOWNLOAD_EML
-        self.set_message_on_the_statusbar(logger.PEC_AND_DOWNLOAD_EML_COMPLETED)
-        self.upadate_progress_bar()
+        self.label = self.translations["PEC_AND_DOWNLOAD_EML"]
+        self.set_message_on_the_statusbar(
+            self.translations["PEC_AND_DOWNLOAD_EML_COMPLETED"]
+        )
+        self.update_progress_bar()
 
-        self.update_task(state.COMPLETED, status.SUCCESS)
+        self.update_task(State.COMPLETED, Status.SUCCESS)
 
         self.finished.emit()
+
+        loop = QEventLoop()
+        QTimer.singleShot(1000, loop.quit)
+        loop.exec()
 
         self.worker_thread.quit()
         self.worker_thread.wait()
 
     def __destroyed_handler(self, _dict):
-        if self.worker_thread.isRunning():
-            self.worker_thread.quit()
-            self.worker_thread.wait()
+        if hasattr(self, "worker_thread") and isValid(self.worker_thread):
+            if self.worker_thread.isRunning():
+                self.worker_thread.quit()
+                self.worker_thread.wait()
