@@ -3,7 +3,6 @@
     "ACQUISITION_STOPPED" : "Acquisition stopped",
     "ACQUISITION_FINISHED" : "Acquisition finished",
     "NTP_ACQUISITION_TIME" : "NTP {} acquisition time: {}",
-    "ZIP_AND_REMOVE_FOLDER": "Zip and remove folder",
     "PACKET_CAPTURE": "Packet Capture",
     "NETWORK_PACKET_CAPTURE_STARTED": "Network packet capture started",
     "NETWORK_PACKET_CAPTURE_STOPPED": "Network packet capture stopped",
@@ -144,5 +143,9 @@
     "SMTP_FAILED_MGS": "Wrong SMTP or PEC parameters or credentials",
     "IMAP_FAILED_MGS": "Wrong IMAP or PEC parameters or credentials",
     "SUBJECT": "Acquisition Report {} case: {} ID: {}",
-    "BODY": "Attached is the report and related timestamp for acquisition {} for case: {}"
+    "BODY": "Attached is the report and related timestamp for acquisition {} for case: {}",
+    "ZIP_AND_REMOVE_FOLDER": "Zip and remove folder",
+    "ZIP_AND_REMOVE_FOLDER_STARTED": "Zip and remove folder started",
+    "ZIP_AND_REMOVE_FOLDER_COMPLETED": "Zip and remove folder completed",
+    "DELETE_FOLDER_ERROR": "An error occurred during deletion"
 }

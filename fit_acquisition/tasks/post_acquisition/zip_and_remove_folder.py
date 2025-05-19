@@ -10,21 +10,26 @@
 import shutil
 import os
 
-from PyQt6.QtCore import QObject, pyqtSignal, QThread
-from PyQt6.QtWidgets import QMessageBox
+from shiboken6 import isValid
+
+from PySide6 import QtWidgets
+from PySide6.QtCore import QObject, Signal, QThread, QEventLoop, QTimer
 
 
-from view.tasks.task import Task
-from view.error import Error as ErrorView
-
-from common.constants import logger, error
-from common.constants.view.tasks import labels, state, status
+from fit_acquisition.task import Task
+from fit_common.gui.utils import State, Status
+from fit_acquisition.lang import load_translations
+from fit_common.gui.error import Error as ErrorView
 
 
 class ZipAndRemoveFolderWorker(QObject):
-    finished = pyqtSignal()
-    started = pyqtSignal()
-    error = pyqtSignal(object)
+    finished = Signal()
+    started = Signal()
+    error = Signal(object)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.translations = load_translations()
 
     def set_options(self, options):
         self.acquisition_content_directory = options["acquisition_content_directory"]
@@ -55,8 +60,8 @@ class ZipAndRemoveFolderWorker(QObject):
         except OSError as e:
             self.error.emit(
                 {
-                    "title": labels.ZIP_AND_REMOVE_FOLDER,
-                    "message": error.DELETE_PROJECT_FOLDER,
+                    "title": self.translations["ZIP_AND_REMOVE_FOLDER"],
+                    "message": self.translations["DELETE_FOLDER_ERROR"],
                     "details": "Error: %s - %s." % (e.filename, e.strerror),
                 }
             )
@@ -66,7 +71,9 @@ class TaskZipAndRemoveFolder(Task):
     def __init__(self, logger, progress_bar=None, status_bar=None, parent=None):
         super().__init__(logger, progress_bar, status_bar, parent)
 
-        self.label = labels.ZIP_AND_REMOVE_FOLDER
+        self.translations = load_translations()
+
+        self.label = self.translations["ZIP_AND_REMOVE_FOLDER"]
 
         self.worker_thread = QThread()
         self.worker = ZipAndRemoveFolderWorker()
@@ -80,37 +87,50 @@ class TaskZipAndRemoveFolder(Task):
 
     def __handle_error(self, error):
         error_dlg = ErrorView(
-            QMessageBox.Icon.Critical,
+            QtWidgets.QMessageBox.Icon.Critical,
             error.get("title"),
             error.get("message"),
             error.get("details"),
         )
         error_dlg.exec()
-        self.__finished(status.FAIL)
+        self.__finished(Status.FAIL)
 
     def start(self):
         self.worker.set_options(self.options)
-        self.update_task(state.STARTED, status.PENDING)
-        self.set_message_on_the_statusbar(logger.ZIP_AND_REMOVE_FOLDER_STARTED)
+        self.update_task(State.STARTED, Status.PENDING)
+        self.set_message_on_the_statusbar(
+            self.translations["ZIP_AND_REMOVE_FOLDER_STARTED"].format(
+                self.options.get("acquisition_content_directory")
+            )
+        )
         self.worker_thread.start()
 
     def __started(self):
-        self.update_task(state.STARTED, status.SUCCESS)
+        self.update_task(State.STARTED, Status.SUCCESS)
         self.started.emit()
 
-    def __finished(self, status=status.SUCCESS):
-        self.logger.info(logger.ZIP_AND_REMOVE_FOLDER)
-        self.set_message_on_the_statusbar(logger.ZIP_AND_REMOVE_FOLDER_COMPLETED)
-        self.upadate_progress_bar()
+    def __finished(self, status=Status.SUCCESS):
+        self.logger.info(self.translations["ZIP_AND_REMOVE_FOLDER"])
+        self.set_message_on_the_statusbar(
+            self.translations["ZIP_AND_REMOVE_FOLDER_COMPLETED"].format(
+                self.options.get("acquisition_content_directory")
+            )
+        )
+        self.update_progress_bar()
 
-        self.update_task(state.COMPLETED, status)
+        self.update_task(State.COMPLETED, status)
 
         self.finished.emit()
+
+        loop = QEventLoop()
+        QTimer.singleShot(1000, loop.quit)
+        loop.exec()
 
         self.worker_thread.quit()
         self.worker_thread.wait()
 
     def __destroyed_handler(self, _dict):
-        if self.worker_thread.isRunning():
-            self.worker_thread.quit()
-            self.worker_thread.wait()
+        if hasattr(self, "worker_thread") and isValid(self.worker_thread):
+            if self.worker_thread.isRunning():
+                self.worker_thread.quit()
+                self.worker_thread.wait()

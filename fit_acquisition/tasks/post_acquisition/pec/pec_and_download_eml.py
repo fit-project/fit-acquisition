@@ -8,6 +8,7 @@
 ######
 
 from shiboken6 import isValid
+from enum import Enum
 
 from PySide6 import QtWidgets
 from PySide6.QtCore import QObject, Signal, QThread, QEventLoop, QTimer
@@ -15,7 +16,6 @@ from PySide6.QtCore import QObject, Signal, QThread, QEventLoop, QTimer
 
 from fit_acquisition.task import Task
 from fit_common.gui.utils import State, Status
-from enum import Enum
 from fit_acquisition.lang import load_translations
 from fit_common.gui.error import Error as ErrorView
 

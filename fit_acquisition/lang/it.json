@@ -3,7 +3,6 @@
     "ACQUISITION_STOPPED": "Acquisizione interrotta",
     "ACQUISITION_FINISHED": "Acquisizione completata",
     "NTP_ACQUISITION_TIME": "Ora di acquisizione NTP {}: {}",
-    "ZIP_AND_REMOVE_FOLDER": "Comprimi e rimuovi cartella",
     "PACKET_CAPTURE": "CATTURA PACCHETTI",
     "NETWORK_PACKET_CAPTURE_STARTED": "Acquisizione pacchetti di rete avviata",
     "NETWORK_PACKET_CAPTURE_STOPPED": "Acquisizione pacchetti di rete interrotta",
@@ -144,5 +143,9 @@
     "SMTP_FAILED_MGS": "Parametri o credenziali SMTP o PEC errati",
     "IMAP_FAILED_MGS": "Parametri o credenziali IMAP o PEC errati",
     "SUBJECT": "Rapporto di acquisizione {} caso: {} ID: {}",
-    "BODY": "In allegato il rapporto e il relativo timestamp per l'acquisizione {} per il caso: {}"
+    "BODY": "In allegato il rapporto e il relativo timestamp per l'acquisizione {} per il caso: {}",
+    "ZIP_AND_REMOVE_FOLDER": "Comprimi e rimuovi cartella",
+    "ZIP_AND_REMOVE_FOLDER_STARTED": "Inzio compressione e rimozione della cartella {}",
+    "ZIP_AND_REMOVE_FOLDER_COMPLETED": "Compressione e rimozione della cartella {} completata",
+    "DELETE_FOLDER_ERROR": "Si è verificato un errore durante la cancellazione"
 }
