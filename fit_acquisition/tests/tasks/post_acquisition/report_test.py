@@ -21,7 +21,7 @@ from fit_common.gui.utils import State, Status
 from fit_common.core.utils import resolve_path
 from fit_acquisition.lang import load_translations
 
-from fit_acquisition.tasks.post_acquisition.report.task import TaskReport
+from fit_acquisition.tasks.post_acquisition.report.report import TaskReport
 
 from fit_acquisition.tests.tasks.tasks_ui import Ui_MainWindow
 
@@ -32,6 +32,7 @@ from fit_configurations.logger import LogConfigTools
 import logging.config
 
 logger = logging.getLogger("view.scrapers.web.web")
+
 
 class TaskReportTest(unittest.TestCase):
     folder = ""
@@ -108,6 +109,7 @@ class TaskReportTest(unittest.TestCase):
         self.task.finished.connect(on_finished)
         self.task.start()
         loop.exec()
+
 
 if __name__ == "__main__":
     folder = resolve_path("acquisition/tasks/report_test_folder")

@@ -57,7 +57,6 @@ class HashWorker(QObject):
         list().append
         self.exclude_list.append("acquisition.hash")
         self.exclude_list.append("acquisition.log")
-        self.exclude_list.append("acquisition_video.mp4")
         for file in files:
             if file not in self.exclude_list:
                 filename = os.path.join(self.folder, file)

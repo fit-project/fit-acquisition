@@ -64,6 +64,7 @@
     "CALCULATE_HASHFILE_COMPLETED": "Calculate HASH of the acquired files completed",
     "CALCULATE_HASHFILE": "Calculation of the HASH of the acquired files",
     "REPORTFILE": "Generate PDF Report",
+    "GENERATE_PDF_REPORT_FAILED_MGS": "An error occurred while generating the PDF report",
     "GENERATE_PDF_REPORT": "Generate PDF Report",
     "GENERATE_PDF_REPORT_STARTED": "Generate PDF Report started",
     "GENERATE_PDF_REPORT_COMPLETED": "Generate PDF Report completed",

@@ -28,6 +28,7 @@ from fit_acquisition.lang import load_translations
 class ReportWorker(QObject):
     finished = Signal()
     started = Signal()
+    error = Signal(object)
 
     def set_options(self, options):
         self.folder = options["acquisition_directory"]
@@ -37,14 +38,22 @@ class ReportWorker(QObject):
     def start(self):
         self.started.emit()
         report = GenerateReport(self.folder, self.case_info)
-
-        report.generate_pdf(
-            self.type,
-            get_ntp_date_and_time(NetworkControllerCheck().configuration["ntp_server"]),
-        )
-
-        self.finished.emit()
-
+        try:
+            report.generate_pdf(
+                self.type,
+                get_ntp_date_and_time(
+                    NetworkControllerCheck().configuration["ntp_server"]
+                ),
+            )
+            self.finished.emit()
+        except Exception as e:
+            self.error.emit(
+                {
+                    "title": self.translations["REPORTFILE"],
+                    "message": self.translations["GENERATE_PDF_REPORT_FAILED_MGS"],
+                    "details": str(e),
+                }
+            )
 
 
 class TaskReport(Task):
@@ -61,8 +70,20 @@ class TaskReport(Task):
         self.worker_thread.started.connect(self.worker.start)
         self.worker.started.connect(self.__started)
         self.worker.finished.connect(self.__finished)
+        self.worker.error.connect(self.__handle_error)
 
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
+
+    def __handle_error(self, error):
+        self.update_task(State.COMPLETED, Status.FAILURE, error.get("details"))
+        self.finished.emit()
+
+        loop = QEventLoop()
+        QTimer.singleShot(1000, loop.quit)
+        loop.exec()
+
+        self.worker_thread.quit()
+        self.worker_thread.wait()
 
     def start(self):
         self.worker.set_options(self.options)

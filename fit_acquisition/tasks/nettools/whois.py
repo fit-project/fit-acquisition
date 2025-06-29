@@ -13,11 +13,9 @@ from whois import NICClient, extract_domain, IPV4_OR_V6
 from shiboken6 import isValid
 
 from PySide6.QtCore import QObject, Signal, QThread, QEventLoop, QTimer
-from PySide6.QtWidgets import QMessageBox
 
 from fit_acquisition.task import Task
 from fit_common.gui.utils import State, Status
-from fit_common.gui.error import Error as ErrorView
 from fit_acquisition.lang import load_translations
 
 
@@ -109,13 +107,18 @@ class TaskWhois(Task):
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
 
     def __handle_error(self, error):
-        error_dlg = ErrorView(
-            QMessageBox.Icon.Critical,
-            error.get("title"),
-            error.get("message"),
-            error.get("details"),
-        )
-        error_dlg.exec()
+        self.update_task(State.COMPLETED, Status.FAILURE, error.get("details"))
+        self.finished.emit()
+
+        loop = QEventLoop()
+        QTimer.singleShot(1000, loop.quit)
+        loop.exec()
+
+        self.worker_thread.quit()
+        self.worker_thread.wait()
+
+        self.update_task(State.COMPLETED, Status.FAILURE, error.get("details"))
+        self.finished.emit()
 
     def start(self):
         self.update_task(State.STARTED, Status.PENDING)

@@ -38,13 +38,9 @@ class TasksManager(QObject):
         self.class_names_modules = dict()
         self.task_handler = TasksHandler()
 
-        self.task_packages = ["fit_acquisition.tasks.post"]
+        self.task_packages = list()
 
     def register_task_package(self, package):
-        """
-        Registra un package da cui caricare moduli task dinamicamente.
-        Esempio: register_task_package(fit_web.task)
-        """
         self.task_packages.append(package)
 
     def load_all_task_modules(self):
@@ -52,6 +48,12 @@ class TasksManager(QObject):
             self.__load_task_modules_from_package(package)
 
     def __load_task_modules_from_package(self, package):
+        if isinstance(package, str):
+            try:
+                package = import_module(package)
+            except ModuleNotFoundError:
+                return
+
         for importer, modname, ispkg in pkgutil.walk_packages(
             path=package.__path__, prefix=package.__name__ + ".", onerror=lambda x: None
         ):
@@ -60,7 +62,6 @@ class TasksManager(QObject):
 
             if modname in sys.modules and not ispkg:
                 class_name = class_names.__dict__.get(modname.rsplit(".", 1)[1].upper())
-
                 if (
                     class_name
                     and isclass(getattr(sys.modules[modname], class_name, None))

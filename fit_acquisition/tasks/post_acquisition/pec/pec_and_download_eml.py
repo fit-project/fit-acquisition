@@ -10,14 +10,12 @@
 from shiboken6 import isValid
 from enum import Enum
 
-from PySide6 import QtWidgets
 from PySide6.QtCore import QObject, Signal, QThread, QEventLoop, QTimer
 
 
 from fit_acquisition.task import Task
 from fit_common.gui.utils import State, Status
 from fit_acquisition.lang import load_translations
-from fit_common.gui.error import Error as ErrorView
 
 from fit_configurations.controller.tabs.pec.pec import Pec as PecConfigController
 
@@ -61,7 +59,7 @@ class PecAndDownloadEmlWorker(QObject):
 
         except Exception as e:
 
-            status = Status.FAIL
+            status = Status.FAILURE
             self.error.emit(
                 {
                     "title": self.translations["LOGIN_FAILED"],
@@ -74,7 +72,7 @@ class PecAndDownloadEmlWorker(QObject):
 
     def download_eml(self):
         for i in range(self.options.get("retries")):
-            status = Status.FAIL
+            status = Status.FAILURE
 
             # whait for 8 seconds
             loop = QEventLoop()
@@ -129,6 +127,17 @@ class TaskPecAndDownloadEml(Task):
 
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
 
+    def __handle_error(self, error):
+        self.update_task(State.COMPLETED, Status.FAILURE, error.get("details"))
+        self.finished.emit()
+
+        loop = QEventLoop()
+        QTimer.singleShot(1000, loop.quit)
+        loop.exec()
+
+        self.worker_thread.quit()
+        self.worker_thread.wait()
+
     def start(self):
         self.worker.set_options(self.options)
         self.update_task(State.STARTED, Status.PENDING)
@@ -136,15 +145,6 @@ class TaskPecAndDownloadEml(Task):
             self.translations["PEC_AND_DOWNLOAD_EML_STARTED"]
         )
         self.worker_thread.start()
-
-    def __handle_error(self, error):
-        error_dlg = ErrorView(
-            QtWidgets.QMessageBox.Icon.Critical,
-            error.get("title"),
-            error.get("message"),
-            error.get("details"),
-        )
-        error_dlg.exec()
 
     def __started(self):
         self.update_task(State.STARTED, Status.SUCCESS)

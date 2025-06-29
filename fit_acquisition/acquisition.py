@@ -8,6 +8,8 @@
 ######
 
 import logging.config
+from shiboken6 import isValid
+
 from PySide6.QtCore import QObject, Signal
 
 from fit_acquisition.post import PostAcquisition
@@ -57,11 +59,6 @@ class Acquisition(QObject):
 
         self.tasks_manager = TasksManager(parent)
 
-        # if task_packages is not None:
-        #     task_packages.append("fit_acquisition.tasks.post")
-        # else:
-        #     task_packages = ["fit_acquisition.tasks.post"]
-
         for package in packages:
             self.tasks_manager.register_task_package(package)
 
@@ -109,8 +106,8 @@ class Acquisition(QObject):
 
     def unload_tasks(self):
         for task in self.tasks_manager.get_tasks():
-            task.deleteLater()
-
+            if isValid(task):
+                task.deleteLater()
         self.tasks_manager.clear_tasks()
 
     def start(self):

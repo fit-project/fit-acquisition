@@ -12,7 +12,7 @@ import os
 from shiboken6 import isValid
 
 from PySide6.QtCore import QObject, Signal, QThread, QUrl, QEventLoop, QTimer
-from PySide6.QtWidgets import QMessageBox, QApplication
+from PySide6.QtWidgets import QApplication
 from PySide6.QtMultimedia import (
     QMediaCaptureSession,
     QMediaRecorder,
@@ -21,7 +21,6 @@ from PySide6.QtMultimedia import (
 )
 
 from fit_acquisition.task import Task
-from fit_common.gui.error import Error as ErrorView
 from fit_common.gui.multimedia import get_vb_cable_virtual_audio_device
 
 
@@ -188,13 +187,15 @@ class TaskScreenRecorder(Task):
         self._options = options
 
     def __handle_error(self, error):
-        error_dlg = ErrorView(
-            QMessageBox.Icon.Critical,
-            error.get("title"),
-            error.get("message"),
-            error.get("details"),
-        )
-        error_dlg.exec()
+        self.update_task(State.COMPLETED, Status.FAILURE, error.get("details"))
+        self.finished.emit()
+
+        loop = QEventLoop()
+        QTimer.singleShot(1000, loop.quit)
+        loop.exec()
+
+        self.worker_thread.quit()
+        self.worker_thread.wait()
 
     def start(self):
         self.update_task(State.STARTED, Status.PENDING)

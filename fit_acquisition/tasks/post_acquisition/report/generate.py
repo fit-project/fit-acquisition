@@ -42,7 +42,7 @@ class GenerateReport:
             load_translations(lang="it")
             if language == "Italian"
             else load_translations()
-        )        
+        )
 
     def generate_pdf(self, type, ntp):
 
@@ -132,7 +132,10 @@ class GenerateReport:
                 "title": self.translations["T2"],
                 "type": "case_info",
                 "description": "",
-                "columns" : [self.translations["CASEINFO"], self.translations["CASEDATA"]],
+                "columns": [
+                    self.translations["CASEINFO"],
+                    self.translations["CASEDATA"],
+                ],
                 "rows": case_rows,
                 "note": self.case_info.get("notes", "").strip() or "N/A",
             }
@@ -180,7 +183,7 @@ class GenerateReport:
                 "title": self.translations["T5"],
                 "type": "file_info",
                 "description": self.translations["T5DESCR"],
-                "columns" : [self.translations["NAME"], self.translations["DESCR"]],
+                "columns": [self.translations["NAME"], self.translations["DESCR"]],
                 "rows": file_rows,
                 "note": "",
             }
@@ -233,7 +236,6 @@ class GenerateReport:
                     "content": screenshot_content,
                 }
             )
-        
 
         # Video
         video_content = self.__insert_video_hyperlink()
@@ -246,7 +248,6 @@ class GenerateReport:
                     "content": video_content,
                 }
             )
-        
 
         template = Template(
             (files("fit_assets.templates") / "content.html").read_text(encoding="utf-8")
@@ -337,12 +338,16 @@ class GenerateReport:
                 acquisition_files.pop(filename, None)
             else:
                 actual_file = matching_files[0]
-                if self.__read_file(actual_file) is None:
+                if self.__is_empty_file(actual_file):
                     acquisition_files[actual_file] = self.translations[
                         "EMPTY_FILE"
                     ].format(actual_file)
 
         return acquisition_files
+
+    def __is_empty_file(self, filename):
+        path = os.path.join(self.cases_folder_path, filename)
+        return not os.path.isfile(path) or os.path.getsize(path) == 0
 
     def _zip_files_enum(self):
         zip_enum = None
@@ -370,7 +375,7 @@ class GenerateReport:
         return zip_enum
 
     def __hash_reader(self):
-        hash_text = None
+        hash_text = ""
         filename = "acquisition.hash"
 
         if self.__read_file(filename):
