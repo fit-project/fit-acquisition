@@ -38,19 +38,36 @@ class HeadersWorker(QObject):
         self._url = url
 
     def __get_headers_information(self, url):
-        __url = urlparse(url)
-        if not __url.netloc:
-            self.error.emit(
-                {
-                    "title": self.translations["HEADERS_ERROR_TITLE"],
-                    "message": self.translations["MALFORMED_URL_ERROR"],
-                    "details": "",
-                }
-            )
+        parsed = urlparse(url)
+        if not parsed.netloc:
+            raise ValueError(self.translations["MALFORMED_URL_ERROR"])
+
         try:
             response = requests.get(url, verify=False, timeout=10)
             response.raise_for_status()
+            return response.headers
         except requests.exceptions.RequestException as e:
+            raise ConnectionError(str(e))
+
+    def start(self):
+        self.started.emit()
+        try:
+            headers = self.__get_headers_information(self.url)
+            headers = dict(headers)
+            for key, value in headers.items():
+                self.logger.info(f"{key}: {value}")
+            self.finished.emit()
+
+        except ValueError as e:
+            self.error.emit(
+                {
+                    "title": self.translations["HEADERS_ERROR_TITLE"],
+                    "message": str(e),
+                    "details": str(e),
+                }
+            )
+
+        except ConnectionError as e:
             self.error.emit(
                 {
                     "title": self.translations["HEADERS_ERROR_TITLE"],
@@ -58,19 +75,15 @@ class HeadersWorker(QObject):
                     "details": str(e),
                 }
             )
-        return response.headers
 
-    def start(self):
-        self.started.emit()
-        headers = self.__get_headers_information(self.url)
-        if headers:
-            headers = dict(headers)
-            for key, value in headers.items():
-                self.logger.info(f"{key}: {value}")
-        else:
-            self.logger.error("No headers retrieved.")
-
-        self.finished.emit()
+        except Exception as e:
+            self.error.emit(
+                {
+                    "title": self.translations["HEADERS_ERROR_TITLE"],
+                    "message": self.translations["HEADERS_EXECUTION_ERROR"],
+                    "details": str(e),
+                }
+            )
 
 
 class TaskHeaders(Task):
@@ -92,15 +105,7 @@ class TaskHeaders(Task):
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
 
     def __handle_error(self, error):
-        self.update_task(State.COMPLETED, Status.FAILURE, error.get("details"))
-        self.finished.emit()
-
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
-
-        self.worker_thread.quit()
-        self.worker_thread.wait()
+        self.__finished(Status.FAILURE, error.get("details"))
 
     def start(self):
         self.update_task(State.STARTED, Status.PENDING)
@@ -112,14 +117,16 @@ class TaskHeaders(Task):
         self.update_task(State.STARTED, Status.SUCCESS)
         self.started.emit()
 
-    def __finished(self):
+    def __finished(self, status=Status.SUCCESS, details=""):
         self.logger.info(
-            self.translations["HEADERS_GET_INFO_URL"].format(self.options["url"])
+            self.translations["HEADERS_GET_INFO_URL"].format(
+                status.name, self.options["url"]
+            )
         )
         self.set_message_on_the_statusbar(self.translations["HEADERS_COMPLETED"])
         self.update_progress_bar()
 
-        self.update_task(State.COMPLETED, Status.SUCCESS)
+        self.update_task(State.COMPLETED, status, details)
 
         self.finished.emit()
 

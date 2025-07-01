@@ -38,40 +38,47 @@ class WhoisWorker(QObject):
         self._url = url
 
     def __whois(self, url, flags=0):
+        ip_match = IPV4_OR_V6.match(url)
+        if ip_match:
+            domain = url
+            result = socket.gethostbyaddr(url)  # può sollevare socket.herror
+            domain = extract_domain(result[0])
+        else:
+            domain = extract_domain(url)
+
+        if not domain:
+            raise ValueError(self.translations["WHOIS_INVALID_DOMAIN_ERROR"])
+
+        nic_client = NICClient()
+        result = nic_client.whois_lookup(None, domain.encode("idna"), flags)
+
+        if not result:
+            raise ValueError(self.translations["WHOIS_INVALID_DOMAIN_ERROR"])
+
+        return result
+
+    def start(self):
+        self.started.emit()
         try:
-            ip_match = IPV4_OR_V6.match(url)
-            if ip_match:
-                domain = url
-                try:
-                    result = socket.gethostbyaddr(url)
-                    domain = extract_domain(result[0])
-                except socket.herror as e:
-                    self.error.emit(
-                        {
-                            "title": self.translations["WHOIS_ERROR_TITLE"],
-                            "message": self.translations["WHOIS_DNS_RESOLUTON_ERROR"],
-                            "details": str(e),
-                        }
-                    )
-                    return
-            else:
-                domain = extract_domain(url)
-
-            if not domain:
-                self.error.emit(
-                    {
-                        "title": self.translations["WHOIS_ERROR_TITLE"],
-                        "message": self.translations["WHOIS_INVALID_DOMAIN_ERROR"],
-                        "details": "",
-                    }
-                )
-                return
-
-            # WHOIS client
-            nic_client = NICClient()
-
-            return nic_client.whois_lookup(None, domain.encode("idna"), flags)
-
+            result = self.__whois(self.url)
+            self.logger.info(result)
+            self.finished.emit()
+        except socket.herror as e:
+            self.error.emit(
+                {
+                    "title": self.translations["WHOIS_ERROR_TITLE"],
+                    "message": self.translations["WHOIS_DNS_RESOLUTON_ERROR"],
+                    "details": str(e),
+                }
+            )
+        except ValueError as e:
+            self.error.emit(
+                {
+                    "title": self.translations["WHOIS_ERROR_TITLE"],
+                    "message": str(e),
+                    "details": str(e),
+                }
+            )
         except Exception as e:
             self.error.emit(
                 {
@@ -80,12 +87,6 @@ class WhoisWorker(QObject):
                     "details": str(e),
                 }
             )
-            return
-
-    def start(self):
-        self.started.emit()
-        self.logger.info(self.__whois(self.url))
-        self.finished.emit()
 
 
 class TaskWhois(Task):
@@ -107,18 +108,7 @@ class TaskWhois(Task):
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
 
     def __handle_error(self, error):
-        self.update_task(State.COMPLETED, Status.FAILURE, error.get("details"))
-        self.finished.emit()
-
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
-
-        self.worker_thread.quit()
-        self.worker_thread.wait()
-
-        self.update_task(State.COMPLETED, Status.FAILURE, error.get("details"))
-        self.finished.emit()
+        self.__finished(Status.FAILURE, error.get("details"))
 
     def start(self):
         self.update_task(State.STARTED, Status.PENDING)
@@ -130,14 +120,16 @@ class TaskWhois(Task):
         self.update_task(State.STARTED, Status.SUCCESS)
         self.started.emit()
 
-    def __finished(self):
+    def __finished(self, status=Status.SUCCESS, details=""):
         self.logger.info(
-            self.translations["WHOIS_GET_INFO_URL"].format(self.options["url"])
+            self.translations["WHOIS_GET_INFO_URL"].format(
+                status.name, self.options["url"]
+            )
         )
         self.set_message_on_the_statusbar(self.translations["WHOIS_COMPLETED"])
         self.update_progress_bar()
 
-        self.update_task(State.COMPLETED, Status.SUCCESS)
+        self.update_task(State.COMPLETED, status, details)
 
         self.finished.emit()
 

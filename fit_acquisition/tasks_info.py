@@ -51,12 +51,12 @@ class TasksInfo(QtWidgets.QDialog):
         else:
             self.log_task_event(task, "finished")
             self._pending_tasks.discard(task.label)
-            if not self._pending_tasks:
-                QtCore.QTimer.singleShot(500, self.close)
+            # if not self._pending_tasks:
+            # QtCore.QTimer.singleShot(500, self.close)
 
     def log_task_event(self, task, event, extra=""):
         now = datetime.now().strftime("%H:%M:%S")
         symbol = {"started": "▶️", "finished": "✅", "error": "❌"}.get(event, "ℹ️")
-        status = f" [{task.status}]" if event == "finished" else ""
+        status = f" [{task.status.name}]" if event == "finished" else ""
         line = f"{symbol} {now} - {task.label} {event}{status} {extra}".strip()
         self.ui.task_log_text.append(line)

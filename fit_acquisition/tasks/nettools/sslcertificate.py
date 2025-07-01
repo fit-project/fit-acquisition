@@ -23,7 +23,7 @@ from fit_acquisition.lang import load_translations
 
 
 class SSLCertificateWorker(QObject):
-    finished = Signal(bool)
+    finished = Signal()
     started = Signal()
     error = Signal(object)
 
@@ -36,80 +36,73 @@ class SSLCertificateWorker(QObject):
         self.folder = options["acquisition_directory"]
 
     def __check_if_peer_certificate_exist(self, url):
-        try:
-            parsed_url = urlparse(url)
-            if not parsed_url.netloc:
-                self.error.emit(
-                    {
-                        "title": self.translations["SSLCERTIFICATE_ERROR_TITLE"],
-                        "message": self.translations["MALFORMED_URL_ERROR"],
-                        "details": "",
-                    }
-                )
-                return False
+        parsed_url = urlparse(url)
+        if not parsed_url.netloc:
+            raise ValueError(self.translations["MALFORMED_URL_ERROR"])
 
-            host = parsed_url.hostname
-            port = parsed_url.port or 443
+        host = parsed_url.hostname
+        port = parsed_url.port or 443
 
-            context = ssl.create_default_context()
-            with socket.create_connection((host, port), timeout=10) as sock:
-                with context.wrap_socket(sock, server_hostname=host) as ssock:
-                    cert = ssock.getpeercert()
-
-                    if cert:
-                        return True
-                    else:
-                        return False
-
-        except (socket.error, ssl.SSLError) as e:
-            self.error.emit(
-                {
-                    "title": self.translations["SSLCERTIFICATE_ERROR_TITLE"],
-                    "message": self.translations["HTTP_CONNECTION_ERROR"],
-                    "details": str(e),
-                }
-            )
-            return False
-        except Exception as e:
-            self.error.emit(
-                {
-                    "title": self.translations["SSLCERTIFICATE_ERROR_TITLE"],
-                    "message": self.translations["SSLCERTIFICATE_ERROR_CHECK"],
-                    "details": str(e),
-                }
-            )
-            return False
+        context = ssl.create_default_context()
+        with socket.create_connection((host, port), timeout=10) as sock:
+            with context.wrap_socket(sock, server_hostname=host) as ssock:
+                cert = ssock.getpeercert()
+                return bool(cert)
 
     def __get_peer_PEM_cert(self, url, port=443, timeout=10):
+        parsed_url = urlparse(url)
+        netloc = parsed_url.netloc
+
+        if not netloc:
+            raise ValueError(self.translations["MALFORMED_URL_ERROR"])
+
+        if ":" in netloc:
+            netloc, port = netloc.split(":")
+            port = int(port)
+
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+
+        conn = socket.create_connection((netloc, port), timeout=timeout)
+        sock = context.wrap_socket(conn, server_hostname=netloc)
+
         try:
-            parsed_url = urlparse(url)
-            netloc = parsed_url.netloc
+            der_cert = sock.getpeercert(True)
+        finally:
+            sock.close()
 
-            if not netloc:
-                raise ValueError(self.translations["MALFORMED_URL_ERROR"])
+        if not der_cert:
+            raise ValueError("Empty certificate received")
 
-            if ":" in netloc:
-                netloc, port = netloc.split(":")
-                port = int(port)
+        return ssl.DER_cert_to_PEM_cert(der_cert)
 
-            context = ssl.create_default_context()
-            context.check_hostname = False
-            context.verify_mode = ssl.CERT_NONE
+    def __save_PEM_cert_to_CER_cert(self, filename, certificate):
+        with open(filename, "w") as cer_file:
+            cer_file.write(certificate)
 
-            conn = socket.create_connection((netloc, port), timeout=timeout)
-            sock = context.wrap_socket(conn, server_hostname=netloc)
+    def start(self):
+        self.started.emit()
+        try:
+            is_peer_certificate_exist = self.__check_if_peer_certificate_exist(self.url)
 
-            try:
-                der_cert = sock.getpeercert(True)
-            finally:
-                sock.close()
+            if is_peer_certificate_exist:
+                certificate = self.__get_peer_PEM_cert(self.url)
+                self.__save_PEM_cert_to_CER_cert(
+                    os.path.join(self.folder, "server.cer"), certificate
+                )
 
-            if der_cert:
-                return ssl.DER_cert_to_PEM_cert(der_cert)
-            else:
-                return None
+            self.finished.emit()
 
-        except (socket.error, ssl.SSLError, ValueError) as e:
+        except ValueError as e:
+            self.error.emit(
+                {
+                    "title": self.translations["SSLCERTIFICATE_ERROR_TITLE"],
+                    "message": str(e),
+                    "details": str(e),
+                }
+            )
+        except (socket.error, ssl.SSLError) as e:
             self.error.emit(
                 {
                     "title": self.translations["SSLCERTIFICATE_ERROR_TITLE"],
@@ -117,13 +110,6 @@ class SSLCertificateWorker(QObject):
                     "details": str(e),
                 }
             )
-            return None
-
-    def __save_PEM_cert_to_CER_cert(self, filename, certificate):
-        try:
-            with open(filename, "w") as cer_file:
-                cer_file.write(certificate)
-            return True
         except (OSError, IOError) as e:
             self.error.emit(
                 {
@@ -134,19 +120,14 @@ class SSLCertificateWorker(QObject):
                     "details": str(e),
                 }
             )
-            return False
-
-    def start(self):
-        self.started.emit()
-        is_peer_certificate_exist = self.__check_if_peer_certificate_exist(self.url)
-        if is_peer_certificate_exist:
-            certificate = self.__get_peer_PEM_cert(self.url)
-            if certificate is not None:
-                self.__save_PEM_cert_to_CER_cert(
-                    os.path.join(self.folder, "server.cer"), certificate
-                )
-
-        self.finished.emit(is_peer_certificate_exist)
+        except Exception as e:
+            self.error.emit(
+                {
+                    "title": self.translations["SSLCERTIFICATE_ERROR_TITLE"],
+                    "message": self.translations["SSLCERTIFICATE_ERROR_CHECK"],
+                    "details": str(e),
+                }
+            )
 
 
 class TaskSSLCertificate(Task):
@@ -168,15 +149,7 @@ class TaskSSLCertificate(Task):
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
 
     def __handle_error(self, error):
-        self.update_task(State.COMPLETED, Status.FAILURE, error.get("details"))
-        self.finished.emit()
-
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
-
-        self.worker_thread.quit()
-        self.worker_thread.wait()
+        self.__finished(Status.FAILURE, error.get("details"))
 
     def start(self):
         self.worker.set_options(self.options)
@@ -188,21 +161,17 @@ class TaskSSLCertificate(Task):
         self.update_task(State.STARTED, Status.SUCCESS)
         self.started.emit()
 
-    def __finished(self, is_peer_certificate_exist):
-        msg = self.translations["SSLCERTIFICATE_GET_FROM_URL"].format(
-            self.options["url"]
-        )
-        if is_peer_certificate_exist is False:
-            msg = self.translations["SSLCERTIFICATE_NOT_EXIST"].format(
-                self.options["url"]
+    def __finished(self, status=Status.SUCCESS, details=""):
+        self.logger.info(
+            self.translations["SSLCERTIFICATE_GET_FROM_URL"].format(
+                status.name, self.options["url"]
             )
-            self.details = msg
+        )
 
-        self.logger.info(msg)
         self.set_message_on_the_statusbar(self.translations["SSLCERTIFICATE_COMPLETED"])
         self.update_progress_bar()
 
-        self.update_task(State.COMPLETED, Status.SUCCESS)
+        self.update_task(State.COMPLETED, status, details)
 
         self.finished.emit()
 

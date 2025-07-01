@@ -65,6 +65,8 @@ class TracerouteWorker(QObject):
                             f"TTL={snd.ttl} IP={rcv.src} TCP_response={isinstance(rcv.payload, scapy.TCP)}"
                         )
 
+            self.finished.emit()
+
         except Exception as e:
             self.error.emit(
                 {
@@ -77,8 +79,6 @@ class TracerouteWorker(QObject):
     def start(self):
         self.started.emit()
         self.__traceroute(self.url, os.path.join(self.folder, "traceroute.txt"))
-
-        self.finished.emit()
 
 
 class TaskTraceroute(Task):
@@ -100,14 +100,8 @@ class TaskTraceroute(Task):
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
 
     def __handle_error(self, error):
-        self.update_task(State.COMPLETED, Status.FAILURE, error.get("details"))
-        self.finished.emit()
+        self.__finished(Status.FAILURE, error.get("details"))
 
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
-
-        self.worker_thread.quit()
         self.worker_thread.wait()
 
     def start(self):
@@ -120,14 +114,16 @@ class TaskTraceroute(Task):
         self.update_task(State.STARTED, Status.SUCCESS)
         self.started.emit()
 
-    def __finished(self):
+    def __finished(self, status=Status.SUCCESS, details=""):
         self.logger.info(
-            self.translations["TRACEROUTE_GET_INFO_URL"].format(self.options["url"])
+            self.translations["TRACEROUTE_GET_INFO_URL"].format(
+                status.name, self.options["url"]
+            )
         )
         self.set_message_on_the_statusbar(self.translations["TRACEROUTE_COMPLETED"])
         self.update_progress_bar()
 
-        self.update_task(State.COMPLETED, Status.SUCCESS)
+        self.update_task(State.COMPLETED, status, details)
 
         self.finished.emit()
 

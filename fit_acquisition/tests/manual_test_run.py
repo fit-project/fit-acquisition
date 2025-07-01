@@ -67,6 +67,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.acquisition.stop_tasks_is_finished.connect(self.on_stop_tasks_finished)
 
     def on_stop_tasks_finished(self):
+        print("MA PERCHE'")
         # Post acquisizione
         self.acquisition.post_acquisition_is_finished.connect(self.tasks_info.close)
         self.acquisition.start_post_acquisition()
@@ -102,7 +103,7 @@ if __name__ == "__main__":
         ],
     )
 
-    acquisition.start_tasks = [SCREENRECORDER, PACKETCAPTURE]
+    # acquisition.start_tasks = [SCREENRECORDER, PACKETCAPTURE]
     acquisition.stop_tasks = [
         WHOIS,
         NSLOOKUP,
@@ -110,9 +111,9 @@ if __name__ == "__main__":
         SSLKEYLOG,
         SSLCERTIFICATE,
         TRACEROUTE,
-        SCREENRECORDER,
-        PACKETCAPTURE,
     ]
+
+    acquisition.post_tasks = list()
 
     # UI
     window = MainWindow(acquisition)

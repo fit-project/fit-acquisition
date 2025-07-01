@@ -41,32 +41,45 @@ class NslookupWorker(QObject):
         self.nslookup_enable_verbose_mode = options["nslookup_enable_verbose_mode"]
 
     def __nslookup(self, url, dns_server, enable_verbose_mode, enable_tcp):
+        parsed_url = urlparse(url)
+        netloc = parsed_url.netloc
+
+        if not netloc:
+            raise ValueError(self.translations["MALFORMED_URL_ERROR"])
+
+        netloc = netloc.split(":")[0]
+
+        dns_query = Nslookup(
+            dns_servers=[dns_server], verbose=enable_verbose_mode, tcp=enable_tcp
+        )
+
+        ips_record = dns_query.dns_lookup(netloc)
+
+        if ips_record.response_full:
+            return "\n".join(map(str, ips_record.response_full))
+        else:
+            raise RuntimeError(self.translations["NSLOOKUP_NO_RESPONSE"].format(netloc))
+
+    def start(self):
+        self.started.emit()
         try:
-            parsed_url = urlparse(url)
-            netloc = parsed_url.netloc
-
-            if not netloc:
-                self.error.emit(
-                    {
-                        "title": self.translations["NSLOOKUP_ERROR_TITLE"],
-                        "message": self.translations["MALFORMED_URL_ERROR"],
-                        "details": "",
-                    }
-                )
-
-            netloc = netloc.split(":")[0]
-
-            dns_query = Nslookup(
-                dns_servers=[dns_server], verbose=enable_verbose_mode, tcp=enable_tcp
+            result = self.__nslookup(
+                self.url,
+                self.nslookup_dns_server,
+                self.nslookup_enable_tcp,
+                self.nslookup_enable_tcp,
             )
+            self.logger.info(result)
+            self.finished.emit()
 
-            ips_record = dns_query.dns_lookup(netloc)
-
-            if ips_record.response_full:
-                return "\n".join(map(str, ips_record.response_full))
-            else:
-                return self.translations["MALFORMED_URL_ERROR"].format(netloc)
-
+        except ValueError as e:
+            self.error.emit(
+                {
+                    "title": self.translations["NSLOOKUP_ERROR_TITLE"],
+                    "message": str(e),
+                    "details": str(e),
+                }
+            )
         except Exception as e:
             self.error.emit(
                 {
@@ -75,18 +88,6 @@ class NslookupWorker(QObject):
                     "details": str(e),
                 }
             )
-
-    def start(self):
-        self.started.emit()
-        self.logger.info(
-            self.__nslookup(
-                self.url,
-                self.nslookup_dns_server,
-                self.nslookup_enable_tcp,
-                self.nslookup_enable_tcp,
-            )
-        )
-        self.finished.emit()
 
 
 class TaskNslookup(Task):
@@ -109,15 +110,7 @@ class TaskNslookup(Task):
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
 
     def __handle_error(self, error):
-        self.update_task(State.COMPLETED, Status.FAILURE, error.get("details"))
-        self.finished.emit()
-
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
-
-        self.worker_thread.quit()
-        self.worker_thread.wait()
+        self.__finished(Status.FAILURE, error.get("details"))
 
     @Task.options.getter
     def options(self):
@@ -141,15 +134,16 @@ class TaskNslookup(Task):
         self.update_task(State.STARTED, Status.SUCCESS)
         self.started.emit()
 
-    def __finished(self):
+    def __finished(self, status=Status.SUCCESS, details=""):
         self.logger.info(
-            self.translations["NSLOOKUP_GET_INFO_URL"].format(self.options["url"])
+            self.translations["NSLOOKUP_GET_INFO_URL"].format(
+                status.name, self.options["url"]
+            )
         )
         self.set_message_on_the_statusbar(self.translations["NSLOOKUP_COMPLETED"])
         self.update_progress_bar()
 
-        self.update_task(State.COMPLETED, Status.SUCCESS)
-
+        self.update_task(State.COMPLETED, status, details)
         self.finished.emit()
 
         loop = QEventLoop()
