@@ -43,7 +43,7 @@
     "SSLCERTIFICATE_SAVING_CERTIFICATE_ERROR": "Exception while saving SSL CERTIFICATE!\nSee bellow for more detail.",
     "SSLKEYLOG": "SSL Keylog",
     "SSLKEYLOG_STARTED": "SSLKEYLOG started",
-    "SSLKEYLOG_COMPLETED": "SSLKEYLOG completed",
+    "SSLKEYLOG_COMPLETED": "{}: SSLKEYLOG completed",
     "SSLKEYLOG_GET": "Get SSLKEYLOG",
     "TRACEROUTE": "Traceroute",
     "TRACEROUTE_STARTED": "TRACEROUTE started",

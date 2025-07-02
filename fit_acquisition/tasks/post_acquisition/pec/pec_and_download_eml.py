@@ -126,7 +126,6 @@ class TaskPecAndDownloadEml(Task):
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
 
     def __handle_error(self, error):
-        print("ma succede qualcosa")
         self.__finished(Status.FAILURE, error.get("details"))
 
     def start(self):

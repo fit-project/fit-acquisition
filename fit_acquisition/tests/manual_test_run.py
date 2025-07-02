@@ -5,8 +5,10 @@ import os
 import sys
 import logging.config
 
-from PySide6 import QtWidgets
+
+from PySide6 import QtCore, QtWidgets
 from PySide6.QtCore import Qt
+
 from fit_common.core.utils import resolve_path
 
 from fit_acquisition.acquisition import Acquisition
@@ -67,10 +69,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.acquisition.stop()
 
     def on_stop_tasks_finished(self):
-        print("MA PERCHE'")
         # Post acquisizione
-        self.acquisition.post_acquisition_is_finished.connect(self.tasks_info.close)
+        self.acquisition.post_acquisition_is_finished.connect(
+            self.on_post_acquisition_finished
+        )
         self.acquisition.start_post_acquisition()
+
+    def on_post_acquisition_finished(self):
+        QtCore.QTimer.singleShot(1000, self.tasks_info.close)
 
 
 if __name__ == "__main__":
@@ -103,17 +109,17 @@ if __name__ == "__main__":
         ],
     )
 
-    # acquisition.start_tasks = [SCREENRECORDER, PACKETCAPTURE]
-    # acquisition.stop_tasks = [
-    #     WHOIS,
-    #     NSLOOKUP,
-    #     HEADERS,
-    #     SSLKEYLOG,
-    #     SSLCERTIFICATE,
-    #     TRACEROUTE,
-    #     SCREENRECORDER,
-    #     PACKETCAPTURE,
-    # ]
+    acquisition.start_tasks = [SCREENRECORDER, PACKETCAPTURE]
+    acquisition.stop_tasks = [
+        WHOIS,
+        NSLOOKUP,
+        HEADERS,
+        SSLKEYLOG,
+        SSLCERTIFICATE,
+        TRACEROUTE,
+        SCREENRECORDER,
+        PACKETCAPTURE,
+    ]
 
     # UI
     window = MainWindow(acquisition)

@@ -43,7 +43,7 @@
     "SSLCERTIFICATE_SAVING_CERTIFICATE_ERROR": "Eccezione durante il salvataggio del certificato SSL!\nDi seguito maggiori dettagli.",
     "SSLKEYLOG": "Log delle chiavi SSL",
     "SSLKEYLOG_STARTED": "Inizio acquisizione SSLKEYLOG",
-    "SSLKEYLOG_COMPLETED": "Acquisizione SSLKEYLOG completata",
+    "SSLKEYLOG_COMPLETED": "{}: Acquisizione SSLKEYLOG completata",
     "SSLKEYLOG_GET": "Recupero del log delle chiavi SSL (sslkeylog)",
     "TRACEROUTE": "Traceroute",
     "TRACEROUTE_STARTED": "Inizio acquisizione TRACEROUTE",
