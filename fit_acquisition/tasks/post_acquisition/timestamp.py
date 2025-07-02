@@ -114,7 +114,9 @@ class TaskTimestamp(Task):
     def __finished(self):
         self.logger.info(
             self.translations["TIMESTAMP_APPLY"].format(
-                self.options["pdf_filename"], self.options["server_name"]
+                Status.SUCCESS.name,
+                self.options["pdf_filename"],
+                self.options["server_name"],
             )
         )
         self.set_message_on_the_statusbar(self.translations["TIMESTAMP_COMPLETED"])

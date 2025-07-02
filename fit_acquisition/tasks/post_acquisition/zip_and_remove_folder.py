@@ -84,23 +84,13 @@ class TaskZipAndRemoveFolder(Task):
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
 
     def __handle_error(self, error):
-        self.update_task(State.COMPLETED, Status.FAILURE, error.get("details"))
-        self.finished.emit()
-
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
-
-        self.worker_thread.quit()
-        self.worker_thread.wait()
+        self.__finished(Status.FAILURE, error.get("details"))
 
     def start(self):
         self.worker.set_options(self.options)
         self.update_task(State.STARTED, Status.PENDING)
         self.set_message_on_the_statusbar(
-            self.translations["ZIP_AND_REMOVE_FOLDER_STARTED"].format(
-                self.options.get("acquisition_content_directory")
-            )
+            self.translations["ZIP_AND_REMOVE_FOLDER_STARTED"]
         )
         self.worker_thread.start()
 
@@ -108,16 +98,16 @@ class TaskZipAndRemoveFolder(Task):
         self.update_task(State.STARTED, Status.SUCCESS)
         self.started.emit()
 
-    def __finished(self, status=Status.SUCCESS):
-        self.logger.info(self.translations["ZIP_AND_REMOVE_FOLDER"])
+    def __finished(self, status=Status.SUCCESS, details=""):
+        self.logger.info(
+            self.translations["ZIP_AND_REMOVE_FOLDER_COMPLETED"].format(status.name)
+        )
         self.set_message_on_the_statusbar(
-            self.translations["ZIP_AND_REMOVE_FOLDER_COMPLETED"].format(
-                self.options.get("acquisition_content_directory")
-            )
+            self.translations["ZIP_AND_REMOVE_FOLDER_COMPLETED"].format(status.name)
         )
         self.update_progress_bar()
 
-        self.update_task(State.COMPLETED, status)
+        self.update_task(State.COMPLETED, status, details)
 
         self.finished.emit()
 

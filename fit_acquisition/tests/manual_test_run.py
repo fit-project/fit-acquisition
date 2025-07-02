@@ -61,10 +61,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tasks_info.setGeometry(self.rect())
 
     def on_stop(self):
+        self.acquisition.stop_tasks_is_finished.connect(self.on_stop_tasks_finished)
         self.tasks_info.setGeometry(self.rect())
         self.tasks_info.show()
         self.acquisition.stop()
-        self.acquisition.stop_tasks_is_finished.connect(self.on_stop_tasks_finished)
 
     def on_stop_tasks_finished(self):
         print("MA PERCHE'")
@@ -104,16 +104,16 @@ if __name__ == "__main__":
     )
 
     # acquisition.start_tasks = [SCREENRECORDER, PACKETCAPTURE]
-    acquisition.stop_tasks = [
-        WHOIS,
-        NSLOOKUP,
-        HEADERS,
-        SSLKEYLOG,
-        SSLCERTIFICATE,
-        TRACEROUTE,
-    ]
-
-    acquisition.post_tasks = list()
+    # acquisition.stop_tasks = [
+    #     WHOIS,
+    #     NSLOOKUP,
+    #     HEADERS,
+    #     SSLKEYLOG,
+    #     SSLCERTIFICATE,
+    #     TRACEROUTE,
+    #     SCREENRECORDER,
+    #     PACKETCAPTURE,
+    # ]
 
     # UI
     window = MainWindow(acquisition)

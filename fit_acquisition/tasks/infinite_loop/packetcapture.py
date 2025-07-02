@@ -63,12 +63,21 @@ class PacketCaptureWorker(QObject):
             )
 
     def stop(self):
-        self.sniffer.stop()
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
-        scapy.wrpcap(self.output_file, self.sniffer.results)
-        self.finished.emit()
+        try:
+            self.sniffer.stop()
+            loop = QEventLoop()
+            QTimer.singleShot(1000, loop.quit)
+            loop.exec()
+            scapy.wrpcap(self.output_file, self.sniffer.results)
+            self.finished.emit()
+        except Exception as e:
+            self.error.emit(
+                {
+                    "title": self.translations["PACKET_CAPTURE"],
+                    "message": self.translations["PACKET_CAPTURE_ERROR"],
+                    "details": str(e),
+                }
+            )
 
 
 class TaskPacketCapture(Task):
@@ -103,15 +112,7 @@ class TaskPacketCapture(Task):
         self._options = options
 
     def __handle_error(self, error):
-        self.update_task(State.COMPLETED, Status.FAILURE, error.get("details"))
-        self.finished.emit()
-
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
-
-        self.worker_thread.quit()
-        self.worker_thread.wait()
+        self.__finished(Status.FAILURE, error.get("details"))
 
     def start(self):
         self.update_task(State.STARTED, Status.PENDING)
@@ -129,7 +130,6 @@ class TaskPacketCapture(Task):
             self.translations["NETWORK_PACKET_CAPTURE_STARTED_DETAILS"],
         )
 
-        self.logger.info(self.translations["NETWORK_PACKET_CAPTURE_STARTED"])
         self.started.emit()
 
     def stop(self):
@@ -139,19 +139,19 @@ class TaskPacketCapture(Task):
         )
         self.worker.stop()
 
-    def __finished(self):
+    def __finished(self, status=Status.SUCCESS, details=""):
 
-        self.logger.info(self.translations["NETWORK_PACKET_CAPTURE_COMPLETED"])
+        if status == Status.SUCCESS:
+            details = self.translations["NETWORK_PACKET_CAPTURE_COMPLETED_DETAILS"]
+
+        self.logger.info(
+            self.translations["NETWORK_PACKET_CAPTURE_COMPLETED"].format(status.name)
+        )
         self.set_message_on_the_statusbar(
             self.translations["NETWORK_PACKET_CAPTURE_COMPLETED"]
         )
         self.update_progress_bar()
-
-        self.update_task(
-            State.COMPLETED,
-            Status.SUCCESS,
-            self.translations["NETWORK_PACKET_CAPTURE_COMPLETED_DETAILS"],
-        )
+        self.update_task(State.COMPLETED, status, details)
 
         self.finished.emit()
 

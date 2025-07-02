@@ -82,8 +82,12 @@ class TaskSaveCaseInfo(Task):
         self.started.emit()
 
     def __finished(self):
-        self.logger.info(self.translations["SAVE_CASE_INFO"])
-        self.set_message_on_the_statusbar(self.translations["SAVE_CASE_INFO_COMPLETED"])
+        self.logger.info(
+            self.translations["SAVE_CASE_INFO_COMPLETED"].format(Status.SUCCESS.name)
+        )
+        self.set_message_on_the_statusbar(
+            self.translations["SAVE_CASE_INFO_COMPLETED"].format(Status.SUCCESS.name)
+        )
         self.update_progress_bar()
 
         self.update_task(State.COMPLETED, Status.SUCCESS)

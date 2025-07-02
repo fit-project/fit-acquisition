@@ -110,6 +110,7 @@ class ScreenRecorderWorker(QObject):
             if self.__is_enabled_audio_recording is True:
                 self.__audio_recorder.record()
 
+            self.started.emit()
         except Exception as e:
             self.error.emit(
                 {
@@ -119,8 +120,6 @@ class ScreenRecorderWorker(QObject):
                 }
             )
 
-        self.started.emit()
-
     def __create_screen_recorder_directories(self):
         if not os.path.exists(self.__audio_path):
             os.makedirs(self.__audio_path)
@@ -128,24 +127,44 @@ class ScreenRecorderWorker(QObject):
             os.makedirs(self.__video_path)
 
     def stop(self):
-        self.__video_recorder.stop()
-        self.__screen_to_record.stop()
-        if self.__is_enabled_audio_recording is True:
-            self.__audio_recorder.stop()
+        try:
+            self.__video_recorder.stop()
+            self.__screen_to_record.stop()
+            if self.__is_enabled_audio_recording is True:
+                self.__audio_recorder.stop()
+
+        except Exception as e:
+            self.error.emit(
+                {
+                    "title": self.translations["SCREEN_RECORDER_ERROR_TITLE"],
+                    "message": self.translations["SCREEN_RECORDER_ERROR_MSG"],
+                    "details": str(e),
+                }
+            )
 
     def __join_audio_and_video(self):
-        if self.__is_enabled_audio_recording is True:
-            from moviepy import VideoFileClip, AudioFileClip
+        try:
+            if self.__is_enabled_audio_recording is True:
+                from moviepy import VideoFileClip, AudioFileClip
 
-            output_path = self.__filename + ".mp4"
-            audio_path = self.__get_file_path(self.__audio_path)
-            video_path = self.__get_file_path(self.__video_path)
-            video = VideoFileClip(video_path)
-            audio = AudioFileClip(audio_path)
-            video = video.set_audio(audio)
-            video.write_videofile(output_path, codec="libx264", audio_codec="aac")
+                output_path = self.__filename + ".mp4"
+                audio_path = self.__get_file_path(self.__audio_path)
+                video_path = self.__get_file_path(self.__video_path)
+                video = VideoFileClip(video_path)
+                audio = AudioFileClip(audio_path)
+                video = video.set_audio(audio)
+                video.write_videofile(output_path, codec="libx264", audio_codec="aac")
 
-        self.finished.emit()
+            self.finished.emit()
+
+        except Exception as e:
+            self.error.emit(
+                {
+                    "title": self.translations["SCREEN_RECORDER_ERROR_TITLE"],
+                    "message": self.translations["SCREEN_RECORDER_ERROR_MSG"],
+                    "details": str(e),
+                }
+            )
 
     def __get_file_path(self, directory):
         for root, dirs, files in os.walk(directory):
@@ -187,15 +206,7 @@ class TaskScreenRecorder(Task):
         self._options = options
 
     def __handle_error(self, error):
-        self.update_task(State.COMPLETED, Status.FAILURE, error.get("details"))
-        self.finished.emit()
-
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
-
-        self.worker_thread.quit()
-        self.worker_thread.wait()
+        self.__finished(Status.FAILURE, error.get("details"))
 
     def start(self):
         self.update_task(State.STARTED, Status.PENDING)
@@ -210,8 +221,6 @@ class TaskScreenRecorder(Task):
             Status.SUCCESS,
             self.translations["SCREEN_RECORDER_STARTED_DETAILS"],
         )
-
-        self.logger.info(self.translations["SCREEN_RECORDER_STARTED"])
         self.started.emit()
 
     def stop(self):
@@ -219,18 +228,21 @@ class TaskScreenRecorder(Task):
         self.set_message_on_the_statusbar(self.translations["SCREEN_RECORDER_STOPPED"])
         self.worker.stop()
 
-    def __finished(self):
-        self.logger.info(self.translations["SCREEN_RECORDER_COMPLETED"])
+    def __finished(self, status=Status.SUCCESS, details=""):
+
+        if status == Status.SUCCESS:
+            details = self.translations["NETWORK_PACKET_CAPTURE_COMPLETED_DETAILS"]
+
+        self.logger.info(
+            self.translations["SCREEN_RECORDER_COMPLETED"].format(status.name)
+        )
+
         self.set_message_on_the_statusbar(
             self.translations["SCREEN_RECORDER_COMPLETED_DETAILS"]
         )
         self.update_progress_bar()
 
-        self.update_task(
-            State.COMPLETED,
-            Status.SUCCESS,
-            self.translations["SCREEN_RECORDER_COMPLETED_DETAILS"],
-        )
+        self.update_task(State.COMPLETED, status, details)
 
         self.finished.emit()
 

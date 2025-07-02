@@ -75,15 +75,7 @@ class TaskReport(Task):
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
 
     def __handle_error(self, error):
-        self.update_task(State.COMPLETED, Status.FAILURE, error.get("details"))
-        self.finished.emit()
-
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
-
-        self.worker_thread.quit()
-        self.worker_thread.wait()
+        self.__finished(Status.FAILURE, error.get("details"))
 
     def start(self):
         self.worker.set_options(self.options)
@@ -97,14 +89,17 @@ class TaskReport(Task):
         self.update_task(State.STARTED, Status.SUCCESS)
         self.started.emit()
 
-    def __finished(self):
-        self.logger.info(self.translations["GENERATE_PDF_REPORT"])
+    def __finished(self, status=Status.SUCCESS, details=""):
+
         self.set_message_on_the_statusbar(
-            self.translations["GENERATE_PDF_REPORT_COMPLETED"]
+            self.translations["GENERATE_PDF_REPORT_COMPLETED"].format(status.name)
+        )
+        self.set_message_on_the_statusbar(
+            self.translations["GENERATE_PDF_REPORT_COMPLETED"].format(status.name)
         )
         self.update_progress_bar()
 
-        self.update_task(State.COMPLETED, Status.SUCCESS)
+        self.update_task(State.COMPLETED, status, details)
         self.finished.emit()
 
         loop = QEventLoop()

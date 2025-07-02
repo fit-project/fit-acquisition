@@ -56,6 +56,7 @@ class PecAndDownloadEmlWorker(QObject):
         self.started.emit()
         try:
             self.pec_controller.send_pec()
+            self.sentpec.emit(status)
 
         except Exception as e:
 
@@ -67,8 +68,6 @@ class PecAndDownloadEmlWorker(QObject):
                     "details": str(e),
                 }
             )
-
-        self.sentpec.emit(status)
 
     def download_eml(self):
         for i in range(self.options.get("retries")):
@@ -82,6 +81,7 @@ class PecAndDownloadEmlWorker(QObject):
             try:
                 if self.pec_controller.retrieve_eml():
                     status = Status.SUCCESS
+                    self.downloadedeml.emit(status)
                     break
             except Exception as e:
                 self.error.emit(
@@ -92,8 +92,6 @@ class PecAndDownloadEmlWorker(QObject):
                     }
                 )
                 break
-
-        self.downloadedeml.emit(status)
 
 
 class TaskPecAndDownloadEml(Task):
@@ -128,15 +126,8 @@ class TaskPecAndDownloadEml(Task):
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
 
     def __handle_error(self, error):
-        self.update_task(State.COMPLETED, Status.FAILURE, error.get("details"))
-        self.finished.emit()
-
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
-
-        self.worker_thread.quit()
-        self.worker_thread.wait()
+        print("ma succede qualcosa")
+        self.__finished(Status.FAILURE, error.get("details"))
 
     def start(self):
         self.worker.set_options(self.options)
@@ -202,14 +193,17 @@ class TaskPecAndDownloadEml(Task):
         self.update_progress_bar()
         self.__finished()
 
-    def __finished(self):
-        self.label = self.translations["PEC_AND_DOWNLOAD_EML"]
+    def __finished(self, status=Status.SUCCESS, details=""):
+
         self.set_message_on_the_statusbar(
-            self.translations["PEC_AND_DOWNLOAD_EML_COMPLETED"]
+            self.translations["PEC_AND_DOWNLOAD_EML_COMPLETED"].format(status.name)
+        )
+        self.logger.info(
+            self.translations["PEC_AND_DOWNLOAD_EML_COMPLETED"].format(status.name)
         )
         self.update_progress_bar()
 
-        self.update_task(State.COMPLETED, Status.SUCCESS)
+        self.update_task(State.COMPLETED, status, details)
 
         self.finished.emit()
 

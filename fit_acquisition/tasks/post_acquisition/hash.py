@@ -112,9 +112,15 @@ class TaskHash(Task):
         self.started.emit()
 
     def __finished(self):
-        self.logger.info(self.translations["CALCULATE_HASHFILE"])
+        self.logger.info(
+            self.translations["CALCULATE_HASHFILE_COMPLETED"].format(
+                Status.SUCCESS.name
+            )
+        )
         self.set_message_on_the_statusbar(
-            self.translations["CALCULATE_HASHFILE_COMPLETED"]
+            self.translations["CALCULATE_HASHFILE_COMPLETED"].format(
+                Status.SUCCESS.name
+            )
         )
         self.update_progress_bar()
 
