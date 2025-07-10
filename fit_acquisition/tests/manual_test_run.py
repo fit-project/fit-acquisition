@@ -17,12 +17,6 @@ from fit_acquisition.class_names import *
 
 from fit_configurations.logger import LogConfigTools
 
-import fit_acquisition.tasks.infinite_loop
-import fit_acquisition.tasks.nettools
-import fit_acquisition.tasks.post_acquisition
-import fit_acquisition.tasks.post_acquisition.pec
-import fit_acquisition.tasks.post_acquisition.report
-
 from fit_acquisition.lang import load_translations
 
 
@@ -96,17 +90,7 @@ if __name__ == "__main__":
     # Setup Acquisition
     logger = logging.getLogger("view.scrapers.web.web")
     acquisition = Acquisition(
-        logger=logger,
-        progress_bar=None,
-        status_bar=None,
-        parent=None,
-        packages=[
-            fit_acquisition.tasks.infinite_loop,
-            fit_acquisition.tasks.nettools,
-            fit_acquisition.tasks.post_acquisition,
-            fit_acquisition.tasks.post_acquisition.pec,
-            fit_acquisition.tasks.post_acquisition.report,
-        ],
+        logger=logger
     )
 
     acquisition.start_tasks = [SCREENRECORDER, PACKETCAPTURE]
@@ -159,8 +143,8 @@ if __name__ == "__main__":
     for t in acquisition.tasks_manager.get_tasks():
         print(f"- {t.label} ({t.__class__.__name__})")
 
-    window.acquisition.progress_bar = window.progress
-    window.acquisition.status_bar = window.statusBar()
+    window.acquisition.__progress_bar = window.progress
+    window.acquisition.__status_bar = window.statusBar()
     window.show()
 
     sys.exit(app.exec())

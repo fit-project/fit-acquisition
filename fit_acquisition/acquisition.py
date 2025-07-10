@@ -30,6 +30,13 @@ from fit_acquisition.lang import load_translations
 from enum import Enum
 
 
+import fit_acquisition.tasks.infinite_loop
+import fit_acquisition.tasks.nettools
+import fit_acquisition.tasks.post_acquisition
+import fit_acquisition.tasks.post_acquisition.pec
+import fit_acquisition.tasks.post_acquisition.report
+
+
 class AcquisitionStatus(Enum):
     UNSTARTED = 1
     STARTED = 2
@@ -44,27 +51,35 @@ class Acquisition(QObject):
     def __init__(
         self,
         logger,
-        progress_bar,
-        status_bar,
-        parent,
-        packages=None,
+        parent=None,
+        packages=[],
     ):
         super().__init__(parent)
-        self.progress_bar = progress_bar
-        self.status_bar = status_bar
+
         self.logger = logger
-        self.options = dict()
+        self.__options = None
+        self.__progress_bar = None
+        self.__status_bar = None
+        
 
         self.translations = load_translations()
 
         self.tasks_manager = TasksManager(parent)
 
+        core_task_packages =[
+            fit_acquisition.tasks.infinite_loop,
+            fit_acquisition.tasks.nettools,
+            fit_acquisition.tasks.post_acquisition,
+            fit_acquisition.tasks.post_acquisition.pec,
+            fit_acquisition.tasks.post_acquisition.report,
+        ]
+
+        packages += core_task_packages
+
         for package in packages:
             self.tasks_manager.register_task_package(package)
 
         self.tasks_manager.load_all_task_modules()
-
-        self.options = dict()
 
         self.start_tasks = list()
         self.stop_tasks = list()
@@ -83,11 +98,27 @@ class Acquisition(QObject):
 
     @property
     def options(self):
-        return self._options
+        return self.__options
 
     @options.setter
-    def options(self, options):
-        self._options = options
+    def options(self, value):
+        self.__options = value
+
+    @property
+    def progress_bar(self):
+        return self.__progress_bar
+    
+    @progress_bar.setter
+    def progress_bar(self, value):
+        self.__progress_bar = value
+    
+    @property
+    def status_bar(self):
+        return self.__status_bar
+    
+    @status_bar.setter
+    def status_bar(self, value):
+        self.__status_bar = value
 
     def load_tasks(self):
         self.log_confing = LogConfigTools()
@@ -101,7 +132,7 @@ class Acquisition(QObject):
         __all_tasks = self.start_tasks + self.stop_tasks + self.post_tasks
 
         self.tasks_manager.init_tasks(
-            __all_tasks, self.logger, self.progress_bar, self.status_bar
+            __all_tasks, self.logger, self.__progress_bar, self.__status_bar
         )
 
     def unload_tasks(self):
@@ -185,9 +216,10 @@ class Acquisition(QObject):
         return 100 / len(self.tasks_manager.get_tasks())
 
     def set_completed_progress_bar(self):
-        self.progress_bar.setValue(
-            self.progress_bar.value() + (100 - self.progress_bar.value())
-        )
+        if self.__progress_bar is not None:
+            self.__progress_bar.setValue(
+                self.__progress_bar.value() + (100 - self.__progress_bar.value())
+            )
 
     def __destroyed_handler(self, __dict):
         self.unload_tasks()
