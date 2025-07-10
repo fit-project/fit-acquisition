@@ -29,8 +29,8 @@ class PecAndDownloadEmlWorker(QObject):
     error = Signal(object)
     started = Signal()
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self):
+        super().__init__()
         self.translations = load_translations()
 
     def set_options(self, options):
@@ -95,8 +95,8 @@ class PecAndDownloadEmlWorker(QObject):
 
 
 class TaskPecAndDownloadEml(Task):
-    def __init__(self, logger, progress_bar=None, status_bar=None, parent=None):
-        super().__init__(logger, progress_bar, status_bar, parent)
+    def __init__(self, logger, progress_bar=None, status_bar=None):
+        super().__init__(logger, progress_bar, status_bar)
 
         self.translations = load_translations()
 

@@ -33,8 +33,8 @@ from fit_configurations.controller.tabs.network.networktools import (
 class TasksManager(QObject):
     all_task_list_completed = Signal()
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self):
+        super().__init__()
         self.class_names_modules = dict()
         self.task_handler = TasksHandler()
 
@@ -113,7 +113,7 @@ class TasksManager(QObject):
             if key in task_list:
                 value = self.class_names_modules.get(key)[0]
                 task = getattr(value, key)
-                task = task(logger, progress_bar, status_bar, self.parent())
+                task = task(logger, progress_bar, status_bar)
 
     def get_tasks(self):
         return self.task_handler.get_tasks()

@@ -55,8 +55,8 @@ class SaveCaseInfoWorker(QObject):
 
 
 class TaskSaveCaseInfo(Task):
-    def __init__(self, logger, progress_bar=None, status_bar=None, parent=None):
-        super().__init__(logger, progress_bar, status_bar, parent)
+    def __init__(self, logger, progress_bar=None, status_bar=None):
+        super().__init__(logger, progress_bar, status_bar)
 
         self.translations = load_translations()
 

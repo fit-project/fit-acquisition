@@ -26,8 +26,8 @@ class TracerouteWorker(QObject):
     started = Signal()
     error = Signal(object)
 
-    def __init__(self, parent=None):
-        QObject.__init__(self, parent=parent)
+    def __init__(self):
+        QObject.__init__(self)
         self.translations = load_translations()
 
     def set_options(self, options):
@@ -82,8 +82,8 @@ class TracerouteWorker(QObject):
 
 
 class TaskTraceroute(Task):
-    def __init__(self, logger, progress_bar=None, status_bar=None, parent=None):
-        super().__init__(logger, progress_bar, status_bar, parent)
+    def __init__(self, logger, progress_bar=None, status_bar=None):
+        super().__init__(logger, progress_bar, status_bar)
 
         self.translations = load_translations()
 

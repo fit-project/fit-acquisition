@@ -25,8 +25,8 @@ class ZipAndRemoveFolderWorker(QObject):
     started = Signal()
     error = Signal(object)
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self):
+        super().__init__()
         self.translations = load_translations()
 
     def set_options(self, options):
@@ -66,8 +66,8 @@ class ZipAndRemoveFolderWorker(QObject):
 
 
 class TaskZipAndRemoveFolder(Task):
-    def __init__(self, logger, progress_bar=None, status_bar=None, parent=None):
-        super().__init__(logger, progress_bar, status_bar, parent)
+    def __init__(self, logger, progress_bar=None, status_bar=None):
+        super().__init__(logger, progress_bar, status_bar)
 
         self.translations = load_translations()
 

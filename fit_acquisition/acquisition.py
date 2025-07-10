@@ -51,22 +51,20 @@ class Acquisition(QObject):
     def __init__(
         self,
         logger,
-        parent=None,
         packages=[],
     ):
-        super().__init__(parent)
+        super().__init__()
 
         self.logger = logger
         self.__options = None
         self.__progress_bar = None
         self.__status_bar = None
-        
 
         self.translations = load_translations()
 
-        self.tasks_manager = TasksManager(parent)
+        self.tasks_manager = TasksManager()
 
-        core_task_packages =[
+        core_task_packages = [
             fit_acquisition.tasks.infinite_loop,
             fit_acquisition.tasks.nettools,
             fit_acquisition.tasks.post_acquisition,
@@ -92,7 +90,7 @@ class Acquisition(QObject):
             PEC_AND_DOWNLOAD_EML,
         ]
 
-        self.post_acquisition = PostAcquisition(self.parent())
+        self.post_acquisition = PostAcquisition()
         self.post_acquisition.finished.connect(self.post_acquisition_is_finished.emit)
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
 
@@ -107,15 +105,15 @@ class Acquisition(QObject):
     @property
     def progress_bar(self):
         return self.__progress_bar
-    
+
     @progress_bar.setter
     def progress_bar(self, value):
         self.__progress_bar = value
-    
+
     @property
     def status_bar(self):
         return self.__status_bar
-    
+
     @status_bar.setter
     def status_bar(self, value):
         self.__status_bar = value

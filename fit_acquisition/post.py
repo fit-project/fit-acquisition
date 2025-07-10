@@ -17,9 +17,9 @@ from fit_acquisition.class_names import *
 class PostAcquisition(QObject):
     finished = Signal()
 
-    def __init__(self, parent: None):
+    def __init__(self):
         self.task_handler = TasksHandler()
-        super().__init__(parent)
+        super().__init__()
 
     def start_post_acquisition_sequence(self, increment, options):
         self.options = options

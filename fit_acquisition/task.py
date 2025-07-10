@@ -19,8 +19,8 @@ class Task(QObject):
     started = Signal()
     finished = Signal()
 
-    def __init__(self, logger, progress_bar, status_bar, parent):
-        super().__init__(parent)
+    def __init__(self, logger, progress_bar, status_bar):
+        super().__init__()
 
         self.is_infinite_loop = False
 

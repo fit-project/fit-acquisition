@@ -38,8 +38,8 @@ class ScreenRecorderWorker(QObject):
     started = Signal()
     error = Signal(object)
 
-    def __init__(self, parent=None):
-        QObject.__init__(self, parent=parent)
+    def __init__(self):
+        QObject.__init__(self)
 
         self.destroyed.connect(self.stop)
 
@@ -175,8 +175,8 @@ class ScreenRecorderWorker(QObject):
 
 
 class TaskScreenRecorder(Task):
-    def __init__(self, logger, progress_bar=None, status_bar=None, parent=None):
-        super().__init__(logger, progress_bar, status_bar, parent)
+    def __init__(self, logger, progress_bar=None, status_bar=None):
+        super().__init__(logger, progress_bar, status_bar)
 
         self.translations = load_translations()
 

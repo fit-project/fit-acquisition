@@ -36,8 +36,8 @@ class PacketCaptureWorker(QObject):
     started = Signal()
     error = Signal(object)
 
-    def __init__(self, parent=None):
-        QObject.__init__(self, parent=parent)
+    def __init__(self):
+        QObject.__init__(self)
         self.options = None
         self.output_file = None
         self.sniffer = scapy.AsyncSniffer()
@@ -81,8 +81,8 @@ class PacketCaptureWorker(QObject):
 
 
 class TaskPacketCapture(Task):
-    def __init__(self, logger, progress_bar=None, status_bar=None, parent=None):
-        super().__init__(logger, progress_bar, status_bar, parent)
+    def __init__(self, logger, progress_bar=None, status_bar=None):
+        super().__init__(logger, progress_bar, status_bar)
 
         self.translations = load_translations()
 
