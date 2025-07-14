@@ -80,7 +80,11 @@ class Acquisition(QObject):
         self.tasks_manager.load_all_task_modules()
 
         self.start_tasks = list()
+        self._start_emitted = False
+
         self.stop_tasks = list()
+        self._stop_emitted = False
+
         self.post_tasks = [
             ZIP_AND_REMOVE_FOLDER,
             SAVE_CASE_INFO,
@@ -154,9 +158,13 @@ class Acquisition(QObject):
                 task.start()
 
     def __started_task_handler(self):
-        if self.tasks_manager.are_task_names_in_the_same_state(
-            self.start_tasks, State.STARTED
+        if (
+            not self._start_emitted
+            and self.tasks_manager.are_task_names_in_the_same_state(
+                self.start_tasks, State.STARTED
+            )
         ):
+            self._start_emitted = True
             self.start_tasks_finished.emit()
 
     def run_stop_tasks(self):
@@ -177,9 +185,13 @@ class Acquisition(QObject):
                     task.start()
 
     def __finished_task_handler(self):
-        if self.tasks_manager.are_task_names_in_the_same_state(
-            self.stop_tasks, State.COMPLETED
+        if (
+            not self._stop_emitted
+            and self.tasks_manager.are_task_names_in_the_same_state(
+                self.stop_tasks, State.COMPLETED
+            )
         ):
+            self._stop_emitted = True
             self.stop_tasks_finished.emit()
 
     def start_post_acquisition(self):
