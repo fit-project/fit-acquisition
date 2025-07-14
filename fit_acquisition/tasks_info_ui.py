@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'tasks_info.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.9.0
+## Created by: Qt User Interface Compiler version 6.8.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -36,15 +36,12 @@ class Ui_tasks_info(object):
 "}\n"
 "\n"
 "")
-        self.verticalLayoutWidget = QWidget(tasks_info)
-        self.verticalLayoutWidget.setObjectName(u"verticalLayoutWidget")
-        self.verticalLayoutWidget.setGeometry(QRect(0, 0, 801, 601))
-        self.verticalLayout_2 = QVBoxLayout(self.verticalLayoutWidget)
+        self.verticalLayout_2 = QVBoxLayout(tasks_info)
         self.verticalLayout_2.setSpacing(0)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.verticalLayout_2.setSizeConstraint(QLayout.SetDefaultConstraint)
         self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
-        self.content_box = QFrame(self.verticalLayoutWidget)
+        self.content_box = QFrame(tasks_info)
         self.content_box.setObjectName(u"content_box")
         self.content_box.setEnabled(True)
         sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
