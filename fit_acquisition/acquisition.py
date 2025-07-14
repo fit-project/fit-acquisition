@@ -44,9 +44,9 @@ class AcquisitionStatus(Enum):
 
 
 class Acquisition(QObject):
-    post_acquisition_is_finished = Signal()
-    start_tasks_is_finished = Signal()
-    stop_tasks_is_finished = Signal()
+    post_acquisition_finished = Signal()
+    start_tasks_finished = Signal()
+    stop_tasks_finished = Signal()
 
     def __init__(
         self,
@@ -91,7 +91,7 @@ class Acquisition(QObject):
         ]
 
         self.post_acquisition = PostAcquisition()
-        self.post_acquisition.finished.connect(self.post_acquisition_is_finished.emit)
+        self.post_acquisition.finished.connect(self.post_acquisition_finished.emit)
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
 
     @property
@@ -139,13 +139,13 @@ class Acquisition(QObject):
                 task.deleteLater()
         self.tasks_manager.clear_tasks()
 
-    def start(self):
+    def run_start_tasks(self):
         self.log_start_message()
 
         tasks = self.tasks_manager.get_tasks_from_class_name(self.start_tasks)
 
         if len(tasks) == 0:
-            self.start_tasks_is_finished.emit()
+            self.start_tasks_finished.emit()
         else:
             for task in tasks:
                 task.started.connect(self.__started_task_handler)
@@ -157,14 +157,14 @@ class Acquisition(QObject):
         if self.tasks_manager.are_task_names_in_the_same_state(
             self.start_tasks, State.STARTED
         ):
-            self.start_tasks_is_finished.emit()
+            self.start_tasks_finished.emit()
 
-    def stop(self):
+    def run_stop_tasks(self):
         self.log_stop_message()
         tasks = self.tasks_manager.get_tasks_from_class_name(self.stop_tasks)
 
         if len(tasks) == 0:
-            self.stop_tasks_is_finished.emit()
+            self.stop_tasks_finished.emit()
         else:
             for task in tasks:
                 task.finished.connect(self.__finished_task_handler)
@@ -180,7 +180,7 @@ class Acquisition(QObject):
         if self.tasks_manager.are_task_names_in_the_same_state(
             self.stop_tasks, State.COMPLETED
         ):
-            self.stop_tasks_is_finished.emit()
+            self.stop_tasks_finished.emit()
 
     def start_post_acquisition(self):
         self.post_acquisition.start_post_acquisition_sequence(

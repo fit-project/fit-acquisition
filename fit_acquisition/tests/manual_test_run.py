@@ -48,7 +48,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Lo ridimensioniamo dinamicamente
         self.resizeEvent = self.on_resize
 
-        self.start_btn.clicked.connect(self.acquisition.start)
+        self.start_btn.clicked.connect(self.acquisition.run_start_tasks)
         self.stop_btn.clicked.connect(self.on_stop)
 
         self.translations = load_translations()
@@ -57,14 +57,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tasks_info.setGeometry(self.rect())
 
     def on_stop(self):
-        self.acquisition.stop_tasks_is_finished.connect(self.on_stop_tasks_finished)
+        self.acquisition.stop_tasks_finished.connect(self.on_stop_tasks_finished)
         self.tasks_info.setGeometry(self.rect())
         self.tasks_info.show()
-        self.acquisition.stop()
+        self.acquisition.run_stop_tasks()
 
     def on_stop_tasks_finished(self):
         # Post acquisizione
-        self.acquisition.post_acquisition_is_finished.connect(
+        self.acquisition.post_acquisition_finished.connect(
             self.on_post_acquisition_finished
         )
         self.acquisition.start_post_acquisition()
@@ -89,9 +89,7 @@ if __name__ == "__main__":
 
     # Setup Acquisition
     logger = logging.getLogger("view.scrapers.web.web")
-    acquisition = Acquisition(
-        logger=logger
-    )
+    acquisition = Acquisition(logger=logger)
 
     acquisition.start_tasks = [SCREENRECORDER, PACKETCAPTURE]
     acquisition.stop_tasks = [
