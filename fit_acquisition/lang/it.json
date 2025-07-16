@@ -26,6 +26,7 @@
     "HEADERS_COMPLETED": "Acquisizione HEADERS completata",
     "HEADERS_GET_INFO_URL": "{}: Recupero informazioni HEADERS per l'URL: {}",
     "HEADERS_ERROR_TITLE": "Errore HEADERS",
+    "HEADERS_EXECUTION_ERROR" : "Si è verificato un errore durante l'esecuzione dell'acquisizione degli header HTTP.\nDi seguito maggiori dettagli.",
     "NSLOOKUP": "NSLOOKUP",
     "NSLOOKUP_GET_INFO_URL": "{}: Recupero informazioni NSLOOKUP per l'URL: {}",
     "NSLOOKUP_STARTED": "Inizio acquisizione NSLOOKUP",

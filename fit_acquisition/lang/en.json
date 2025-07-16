@@ -26,6 +26,7 @@
     "HEADERS_COMPLETED": "HEADERS completed",
     "HEADERS_GET_INFO_URL": "{}: Get HEADERS info for URL: {}",
     "HEADERS_ERROR_TITLE": "HEADERS error",
+    "HEADERS_EXECUTION_ERROR" : "An error occurred while retrieving the HTTP headers.\nSee bellow for more detail.",
     "NSLOOKUP": "Nslookup",
     "NSLOOKUP_GET_INFO_URL": "{}: Get NSLOOKUP info for URL: {}",
     "NSLOOKUP_STARTED": "NSLOOKUP started",

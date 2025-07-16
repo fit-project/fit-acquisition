@@ -21,7 +21,7 @@ from fit_common.gui.utils import State, Status
 from fit_common.core.utils import resolve_path
 from fit_acquisition.lang import load_translations
 
-from fit_acquisition.tasks.nettools.headers import TaskHeaders
+from fit_acquisition.tasks.network_tools.nslookup import TaskNslookup
 
 
 from fit_acquisition.tests.tasks.tasks_ui import Ui_MainWindow
@@ -34,7 +34,7 @@ import logging.config
 logger = logging.getLogger("view.scrapers.web.web")
 
 
-class TaskHeadersTest(unittest.TestCase):
+class TaskNslookupTest(unittest.TestCase):
     folder = ""
     window = None
     translations = load_translations()
@@ -46,7 +46,7 @@ class TaskHeadersTest(unittest.TestCase):
         log_tools.change_filehandlers_path(cls.folder)
         logging.config.dictConfig(log_tools.config)
 
-        cls.task = TaskHeaders(
+        cls.task = TaskNslookup(
             logger,
             cls.window.progressBar,
             cls.window.statusbar,
@@ -55,7 +55,7 @@ class TaskHeadersTest(unittest.TestCase):
         cls.task.options = {"url": "http://google.it"}
 
     def test_00_init_packet_capture_task(self):
-        self.assertEqual(self.task.label, self.translations["HEADERS"])
+        self.assertEqual(self.task.label, self.translations["NSLOOKUP"])
         self.assertEqual(self.task.state, State.INITIALIZATED)
         self.assertEqual(self.task.status, Status.SUCCESS)
         self.assertEqual(self.task.progress_bar.value(), 0)
@@ -77,7 +77,7 @@ class TaskHeadersTest(unittest.TestCase):
 
         self.assertEqual(
             self.task.status_bar.currentMessage(),
-            self.translations["HEADERS_STARTED"],
+            self.translations["NSLOOKUP_STARTED"],
         )
         self.assertEqual(self.task.progress_bar.value(), 0)
 
@@ -95,25 +95,26 @@ class TaskHeadersTest(unittest.TestCase):
 
         self.assertEqual(
             self.task.status_bar.currentMessage(),
-            self.translations["HEADERS_COMPLETED"],
+            self.translations["NSLOOKUP_COMPLETED"],
         )
 
         self.assertEqual(self.task.progress_bar.value(), 100)
-        self.assertTrue(os.path.exists(os.path.join(self.folder, "headers.txt")))
+
+        self.assertTrue(os.path.exists(os.path.join(self.folder, "nslookup.txt")))
 
 
 if __name__ == "__main__":
 
-    folder = resolve_path("acquisition/tasks/headers_test_folder")
+    folder = resolve_path("acquisition/tasks/nslookup_test_folder")
 
     if not os.path.exists(folder):
         os.makedirs(folder)
 
     MainWindow = QtWidgets.QMainWindow()
-    TaskHeadersTest.folder = folder
-    TaskHeadersTest.window = Ui_MainWindow()
-    TaskHeadersTest.window.setupUi(MainWindow)
-    TaskHeadersTest.window.progressBar.setValue(0)
+    TaskNslookupTest.folder = folder
+    TaskNslookupTest.window = Ui_MainWindow()
+    TaskNslookupTest.window.setupUi(MainWindow)
+    TaskNslookupTest.window.progressBar.setValue(0)
     MainWindow.show()
 
     unittest.main()

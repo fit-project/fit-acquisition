@@ -31,7 +31,7 @@ from enum import Enum
 
 
 import fit_acquisition.tasks.infinite_loop
-import fit_acquisition.tasks.nettools
+import fit_acquisition.tasks.network_tools
 import fit_acquisition.tasks.post_acquisition
 import fit_acquisition.tasks.post_acquisition.pec
 import fit_acquisition.tasks.post_acquisition.report

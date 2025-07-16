@@ -140,7 +140,7 @@ class Task(QObject):
         self.status = status
         self.details = details
 
-    def _started(self, details):
+    def _started(self, details=""):
         self.update_task(State.STARTED, Status.SUCCESS, details)
         self.started.emit()
 
