@@ -14,31 +14,18 @@ from shiboken6 import isValid
 
 from PySide6.QtCore import QObject, Signal, QThread, QEventLoop, QTimer
 
-from fit_acquisition.task import Task
+from fit_acquisition.tasks.task import Task
+from fit_acquisition.tasks.task_worker import TaskWorker
+
 from fit_common.gui.utils import State, Status
 from fit_acquisition.lang import load_translations
 
 
-from fit_configurations.controller.tabs.network.networkcheck import (
-    NetworkControllerCheck as NetworkCheckController,
-)
+from fit_configurations.controller.tabs.network.network_check import NetworkCheckController
 
 
-class NslookupWorker(QObject):
+class NslookupWorker(TaskWorker):
     logger = logging.getLogger("nslookup")
-    finished = Signal()
-    started = Signal()
-    error = Signal(object)
-
-    def __init__(self):
-        QObject.__init__(self)
-        self.translations = load_translations()
-
-    def set_options(self, options):
-        self.url = options["url"]
-        self.nslookup_dns_server = options["nslookup_dns_server"]
-        self.nslookup_enable_tcp = options["nslookup_enable_tcp"]
-        self.nslookup_enable_verbose_mode = options["nslookup_enable_verbose_mode"]
 
     def __nslookup(self, url, dns_server, enable_verbose_mode, enable_tcp):
         parsed_url = urlparse(url)
@@ -64,10 +51,10 @@ class NslookupWorker(QObject):
         self.started.emit()
         try:
             result = self.__nslookup(
-                self.url,
-                self.nslookup_dns_server,
-                self.nslookup_enable_tcp,
-                self.nslookup_enable_tcp,
+                self.options["url"],
+                self.options["nslookup_dns_server"],
+                self.options["nslookup_enable_verbose_mode"],
+                self.options["nslookup_enable_tcp"],
             )
             self.logger.info(result)
             self.finished.emit()
@@ -92,25 +79,13 @@ class NslookupWorker(QObject):
 
 class TaskNslookup(Task):
     def __init__(self, logger, progress_bar=None, status_bar=None):
-        super().__init__(logger, progress_bar, status_bar)
-
-        self.translations = load_translations()
-
-        self.label = self.translations["NSLOOKUP"]
-
-        self.worker_thread = QThread()
-        self.worker = NslookupWorker()
-        self.worker.moveToThread(self.worker_thread)
-        self.worker_thread.started.connect(self.worker.start)
-        self.worker.started.connect(self.__started)
-        self.worker.finished.connect(self.__finished)
-
-        self.worker.error.connect(self.__handle_error)
-
-        self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
-
-    def __handle_error(self, error):
-        self.__finished(Status.FAILURE, error.get("details"))
+        super().__init__(
+            logger,
+            progress_bar,
+            status_bar,
+            label="NSLOOKUP",
+            worker_class=NslookupWorker,
+        )
 
     @Task.options.getter
     def options(self):
@@ -122,39 +97,19 @@ class TaskNslookup(Task):
         options = NetworkCheckController().configuration
         options["url"] = url
         self._options = options
-
+    
     def start(self):
-        self.worker.set_options(self.options)
-        self.update_task(State.STARTED, Status.PENDING)
-        self.set_message_on_the_statusbar(self.translations["NSLOOKUP_STARTED"])
+        super().start_task(self.translations["NSLOOKUP_STARTED"])
+    
+    def _started(self):
+        super()._started()
 
-        self.worker_thread.start()
+    def _finished(self, status=Status.SUCCESS, details=""):
+        if status == Status.SUCCESS:
+            details = self.translations["NSLOOKUP_COMPLETED"]
 
-    def __started(self):
-        self.update_task(State.STARTED, Status.SUCCESS)
-        self.started.emit()
-
-    def __finished(self, status=Status.SUCCESS, details=""):
-        self.logger.info(
-            self.translations["NSLOOKUP_GET_INFO_URL"].format(
-                status.name, self.options["url"]
-            )
+        message = self.translations["NSLOOKUP_GET_INFO_URL"].format(
+            status.name, self.options["url"]
         )
-        self.set_message_on_the_statusbar(self.translations["NSLOOKUP_COMPLETED"])
-        self.update_progress_bar()
 
-        self.update_task(State.COMPLETED, status, details)
-        self.finished.emit()
-
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
-
-        self.worker_thread.quit()
-        self.worker_thread.wait()
-
-    def __destroyed_handler(self, _dict):
-        if hasattr(self, "worker_thread") and isValid(self.worker_thread):
-            if self.worker_thread.isRunning():
-                self.worker_thread.quit()
-                self.worker_thread.wait()
+        super()._finished(status, details, message)
