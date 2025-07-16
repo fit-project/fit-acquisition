@@ -440,7 +440,7 @@ resolved_reference = "15c3c55cf2e9e5c382eb4427dadbc9a3d6be3777"
 
 [[package]]
 name = "fit-configurations"
-version = "1.0.9"
+version = "1.0.10"
 description = "This module provides the graphical interface for configuring settings used by the FIT application."
 optional = false
 python-versions = ">=3.9,<3.13"
@@ -458,7 +458,7 @@ sqlalchemy = "^2.0.40"
 type = "git"
 url = "https://github.com/fit-project/fit-configurations.git"
 reference = "main"
-resolved_reference = "0350c14e3dab488685309ad95834a6d02261bc04"
+resolved_reference = "f8b00a909b69f86ec84254d992b7e0b2a16aa2f8"
 
 [[package]]
 name = "greenlet"

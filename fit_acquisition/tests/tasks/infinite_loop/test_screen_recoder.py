@@ -8,16 +8,17 @@
 ######
 
 import os
+import glob
 import logging
 import logging.config
 import pytest
 
 from PySide6.QtWidgets import QMainWindow
-
 from fit_common.gui.utils import State, Status
 from fit_common.core.utils import resolve_path
+
 from fit_acquisition.lang import load_translations
-from fit_acquisition.tasks.infinite_loop.packet_capture import TaskPacketCapture
+from fit_acquisition.tasks.infinite_loop.screen_recorder import TaskScreenRecorder
 from fit_acquisition.tests.tasks.tasks_ui import Ui_MainWindow
 from fit_configurations.logger import LogConfigTools
 
@@ -26,13 +27,8 @@ logger = logging.getLogger("view.scrapers.web.web")
 
 
 @pytest.fixture(scope="module")
-def app_instance(qapp):
-    return qapp
-
-
-@pytest.fixture(scope="module")
 def test_folder():
-    folder = resolve_path("acquisition/tasks/packetcapture_test_folder")
+    folder = resolve_path("acquisition/tasks/screenrecorder_test_folder")
     os.makedirs(folder, exist_ok=True)
     return folder
 
@@ -56,55 +52,52 @@ def task_instance(main_window, test_folder):
     log_tools.change_filehandlers_path(test_folder)
     logging.config.dictConfig(log_tools.config)
 
-    task = TaskPacketCapture(
+    task = TaskScreenRecorder(
         logger,
         ui.progressBar,
         ui.statusbar,
     )
-    task.options = {"acquisition_directory": test_folder}
+
+    task.options = {
+        "acquisition_directory": test_folder,
+        "window_pos": window.pos(),
+    }
+
     return task, ui
 
 
-def test_init_packet_capture_task(task_instance):
+def test_init_screen_recorder_task(task_instance):
     task, _ = task_instance
 
-    assert task.label == translations["PACKET_CAPTURE"]
+    assert task.label == translations["SCREEN_RECORDER"]
     assert task.state == State.INITIALIZATED
     assert task.status == Status.SUCCESS
     assert task.progress_bar.value() == 0
 
 
-def test_packet_capture_task(task_instance, test_folder, qtbot):
+def test_screen_recorder_task(task_instance, test_folder, qtbot):
     task, ui = task_instance
 
-    # Avvia e aspetta il segnale started
-    with qtbot.waitSignal(task.started, timeout=2000):
+    with qtbot.waitSignal(task.started, timeout=3000):
         task.start()
 
     assert task.state == State.STARTED
-    assert task.status == Status.SUCCESS
-    assert task.details == translations["NETWORK_PACKET_CAPTURE_STARTED_DETAILS"]
-    assert (
-        task.status_bar.currentMessage()
-        == translations["NETWORK_PACKET_CAPTURE_STARTED"]
-    )
+    assert task.status in [Status.PENDING, Status.SUCCESS]
     assert task.progress_bar.value() == 0
+    assert ui.statusbar.currentMessage() == translations["SCREEN_RECORDER_STARTED"]
 
-    # Attendi qualche secondo per far avanzare
     qtbot.wait(5000)
 
-    # Ferma e aspetta il segnale finished
-    with qtbot.waitSignal(task.finished, timeout=3000):
+    with qtbot.waitSignal(task.finished, timeout=6000):
         task.increment = 100
         task.stop()
 
     assert task.state == State.COMPLETED
     assert task.status == Status.SUCCESS
     assert task.details == translations["NETWORK_PACKET_CAPTURE_COMPLETED_DETAILS"]
-    assert (
-        task.status_bar.currentMessage()
-        == translations["NETWORK_PACKET_CAPTURE_COMPLETED"].format(task.status.name)
-    )
+    assert ui.statusbar.currentMessage() == translations["SCREEN_RECORDER_COMPLETED"].format(task.status.name)
     assert task.progress_bar.value() == 100
 
-    assert os.path.exists(os.path.join(test_folder, task.options["filename"]))
+    # Verifica che sia stato creato almeno un file (video o audio + video)
+    matching_files = glob.glob(task.options["filename"] + ".*")
+    assert len(matching_files) > 0
