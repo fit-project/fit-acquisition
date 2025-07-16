@@ -76,9 +76,6 @@ class TaskHeaders(Task):
     def start(self):
         super().start_task(self.translations["HEADERS_STARTED"])
 
-    def _started(self):
-        super()._started()
-
     def _finished(self, status=Status.SUCCESS, details=""):
         if status == Status.SUCCESS:
             details = self.translations["HEADERS_COMPLETED"]

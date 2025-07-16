@@ -10,17 +10,11 @@
 import logging
 from nslookup import Nslookup
 from urllib.parse import urlparse
-from shiboken6 import isValid
 
-from PySide6.QtCore import QObject, Signal, QThread, QEventLoop, QTimer
 
 from fit_acquisition.tasks.task import Task
 from fit_acquisition.tasks.task_worker import TaskWorker
-
-from fit_common.gui.utils import State, Status
-from fit_acquisition.lang import load_translations
-
-
+from fit_common.gui.utils import Status
 from fit_configurations.controller.tabs.network.network_check import NetworkCheckController
 
 
@@ -100,9 +94,6 @@ class TaskNslookup(Task):
     
     def start(self):
         super().start_task(self.translations["NSLOOKUP_STARTED"])
-    
-    def _started(self):
-        super()._started()
 
     def _finished(self, status=Status.SUCCESS, details=""):
         if status == Status.SUCCESS:

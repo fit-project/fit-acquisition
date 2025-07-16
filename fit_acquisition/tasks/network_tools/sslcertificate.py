@@ -17,23 +17,14 @@ from shiboken6 import isValid
 
 from PySide6.QtCore import QObject, Signal, QThread, QEventLoop, QTimer
 
-from fit_acquisition.task import Task
+from fit_acquisition.tasks.task import Task
+from fit_acquisition.tasks.task_worker import TaskWorker
+
 from fit_common.gui.utils import State, Status
 from fit_acquisition.lang import load_translations
 
 
-class SSLCertificateWorker(QObject):
-    finished = Signal()
-    started = Signal()
-    error = Signal(object)
-
-    def __init__(self):
-        QObject.__init__(self)
-        self.translations = load_translations()
-
-    def set_options(self, options):
-        self.url = options["url"]
-        self.folder = options["acquisition_directory"]
+class SSLCertificateWorker(TaskWorker):
 
     def __check_if_peer_certificate_exist(self, url):
         parsed_url = urlparse(url)
@@ -84,10 +75,10 @@ class SSLCertificateWorker(QObject):
     def start(self):
         self.started.emit()
         try:
-            is_peer_certificate_exist = self.__check_if_peer_certificate_exist(self.url)
+            is_peer_certificate_exist = self.__check_if_peer_certificate_exist(self.options["url"])
 
             if is_peer_certificate_exist:
-                certificate = self.__get_peer_PEM_cert(self.url)
+                certificate = self.__get_peer_PEM_cert(self.options["url"])
                 self.__save_PEM_cert_to_CER_cert(
                     os.path.join(self.folder, "server.cer"), certificate
                 )
@@ -132,58 +123,24 @@ class SSLCertificateWorker(QObject):
 
 class TaskSSLCertificate(Task):
     def __init__(self, logger, progress_bar=None, status_bar=None):
-        super().__init__(logger, progress_bar, status_bar)
-
-        self.translations = load_translations()
-
-        self.label = self.translations["SSLCERTIFICATE"]
-
-        self.worker_thread = QThread()
-        self.worker = SSLCertificateWorker()
-        self.worker.moveToThread(self.worker_thread)
-        self.worker_thread.started.connect(self.worker.start)
-        self.worker.started.connect(self.__started)
-        self.worker.finished.connect(self.__finished)
-        self.worker.error.connect(self.__handle_error)
-
-        self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
-
-    def __handle_error(self, error):
-        self.__finished(Status.FAILURE, error.get("details"))
-
-    def start(self):
-        self.worker.set_options(self.options)
-        self.update_task(State.STARTED, Status.PENDING)
-        self.set_message_on_the_statusbar(self.translations["SSLCERTIFICATE_STARTED"])
-        self.worker_thread.start()
-
-    def __started(self):
-        self.update_task(State.STARTED, Status.SUCCESS)
-        self.started.emit()
-
-    def __finished(self, status=Status.SUCCESS, details=""):
-        self.logger.info(
-            self.translations["SSLCERTIFICATE_GET_FROM_URL"].format(
-                status.name, self.options["url"]
-            )
+        super().__init__(
+            logger,
+            progress_bar,
+            status_bar,
+            label="SSLCERTIFICATE",
+            worker_class=SSLCertificateWorker,
         )
 
-        self.set_message_on_the_statusbar(self.translations["SSLCERTIFICATE_COMPLETED"])
-        self.update_progress_bar()
+    def start(self):
+        super().start_task(self.translations["SSLCERTIFICATE_STARTED"])
+    
 
-        self.update_task(State.COMPLETED, status, details)
+    def _finished(self, status=Status.SUCCESS, details=""):
+        if status == Status.SUCCESS:
+            details = self.translations["SSLCERTIFICATE_COMPLETED"]
 
-        self.finished.emit()
+        message = self.translations["SSLCERTIFICATE_GET_FROM_URL"].format(
+            status.name, self.options["url"]
+        )
 
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
-
-        self.worker_thread.quit()
-        self.worker_thread.wait()
-
-    def __destroyed_handler(self, _dict):
-        if hasattr(self, "worker_thread") and isValid(self.worker_thread):
-            if self.worker_thread.isRunning():
-                self.worker_thread.quit()
-                self.worker_thread.wait()
+        super()._finished(status, details, message)
