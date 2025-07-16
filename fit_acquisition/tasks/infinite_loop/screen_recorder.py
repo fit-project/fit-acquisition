@@ -9,22 +9,20 @@
 
 import os
 
-from PySide6.QtCore import QThread, QUrl, QEventLoop, QTimer
-from PySide6.QtWidgets import QApplication
+from fit_common.gui.multimedia import get_vb_cable_virtual_audio_device
+from fit_common.gui.utils import Status
+from fit_configurations.controller.tabs.screen_recorder.screen_recorder import (
+    ScreenRecorderController,
+)
+from PySide6.QtCore import QUrl
 from PySide6.QtMultimedia import (
+    QAudioInput,
     QMediaCaptureSession,
     QMediaRecorder,
     QScreenCapture,
-    QAudioInput,
 )
+from PySide6.QtWidgets import QApplication
 
-
-from fit_common.gui.utils import State, Status
-from fit_common.gui.multimedia import get_vb_cable_virtual_audio_device
-
-from fit_configurations.controller.tabs.screen_recorder.screen_recorder import ScreenRecorderController
-
-from fit_acquisition.lang import load_translations
 from fit_acquisition.tasks.task import Task
 from fit_acquisition.tasks.task_worker import TaskWorker
 
@@ -114,7 +112,7 @@ class ScreenRecorderWorker(TaskWorker):
     def __join_audio_and_video(self):
         try:
             if self.__is_enabled_audio_recording:
-                from moviepy import VideoFileClip, AudioFileClip
+                from moviepy import AudioFileClip, VideoFileClip
 
                 output_path = self.__filename + ".mp4"
                 audio_path = self.__get_file_path(self.__audio_path)

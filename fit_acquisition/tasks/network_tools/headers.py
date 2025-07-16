@@ -8,13 +8,13 @@
 ######
 
 import logging
-import requests
 from urllib.parse import urlparse
+
+import requests
+from fit_common.gui.utils import Status
 
 from fit_acquisition.tasks.task import Task
 from fit_acquisition.tasks.task_worker import TaskWorker
-
-from fit_common.gui.utils import Status
 
 
 class HeadersWorker(TaskWorker):

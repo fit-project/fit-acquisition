@@ -8,20 +8,14 @@
 ######
 
 import os
-import ssl
 import socket
-
+import ssl
 from urllib.parse import urlparse
-from shiboken6 import isValid
 
-
-from PySide6.QtCore import QObject, Signal, QThread, QEventLoop, QTimer
+from fit_common.gui.utils import Status
 
 from fit_acquisition.tasks.task import Task
 from fit_acquisition.tasks.task_worker import TaskWorker
-
-from fit_common.gui.utils import State, Status
-from fit_acquisition.lang import load_translations
 
 
 class SSLCertificateWorker(TaskWorker):

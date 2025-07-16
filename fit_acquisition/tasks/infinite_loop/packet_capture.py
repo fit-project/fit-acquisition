@@ -8,21 +8,19 @@
 ######
 
 import logging
-
-logging.getLogger("scapy").setLevel(logging.CRITICAL)
-import scapy.all as scapy
-
 import os
-from PySide6.QtCore import  QEventLoop, QTimer, QThread
+
+import scapy.all as scapy
+from fit_common.gui.utils import Status
+from fit_configurations.controller.tabs.packet_capture.packet_capture import (
+    PacketCaptureController,
+)
+from PySide6.QtCore import QEventLoop, QTimer
 
 from fit_acquisition.tasks.task import Task
 from fit_acquisition.tasks.task_worker import TaskWorker
 
-
-from fit_configurations.controller.tabs.packet_capture.packet_capture import PacketCaptureController
-
-
-from fit_common.gui.utils import State, Status
+logging.getLogger("scapy").setLevel(logging.CRITICAL)
 
 
 class PacketCaptureWorker(TaskWorker):
