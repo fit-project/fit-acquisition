@@ -140,7 +140,6 @@ class Task(QObject):
         self.details = details
 
     def _started(self, details=""):
-        print("ci centra")
         self.update_task(State.STARTED, Status.SUCCESS, details)
         self.started.emit()
 

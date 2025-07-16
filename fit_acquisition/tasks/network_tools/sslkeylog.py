@@ -37,5 +37,4 @@ class TaskSSLKeyLog(Task):
     
 
     def _finished(self, status=Status.SUCCESS, details=""):
-         print("ci centra 2")
          super()._finished(status, details, self.translations["SSLKEYLOG_COMPLETED"].format(Status.SUCCESS.name))
