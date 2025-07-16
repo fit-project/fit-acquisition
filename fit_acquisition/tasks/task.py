@@ -7,14 +7,13 @@
 # -----
 ######
 
+from fit_common.gui.utils import State, Status
+from PySide6.QtCore import QEventLoop, QObject, QThread, QTimer, Signal
+from PySide6.QtWidgets import QLabel, QStatusBar
 from shiboken6 import isValid
 
-from PySide6.QtCore import QObject, Signal, QThread, QEventLoop, QTimer
-from PySide6.QtWidgets import QStatusBar, QLabel
-
-from fit_common.gui.utils import Status, State
-from fit_acquisition.tasks_handler import TasksHandler
 from fit_acquisition.lang import load_translations
+from fit_acquisition.tasks_handler import TasksHandler
 
 
 class Task(QObject):
@@ -141,6 +140,7 @@ class Task(QObject):
         self.details = details
 
     def _started(self, details=""):
+        print("ci centra")
         self.update_task(State.STARTED, Status.SUCCESS, details)
         self.started.emit()
 
