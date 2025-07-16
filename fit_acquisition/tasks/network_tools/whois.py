@@ -9,33 +9,16 @@
 
 import logging
 import socket
-from whois import NICClient, extract_domain, IPV4_OR_V6
-from shiboken6 import isValid
 
-from PySide6.QtCore import QObject, Signal, QThread, QEventLoop, QTimer
+from fit_common.gui.utils import Status
+from whois import IPV4_OR_V6, NICClient, extract_domain
 
-from fit_acquisition.task import Task
-from fit_common.gui.utils import State, Status
-from fit_acquisition.lang import load_translations
+from fit_acquisition.tasks.task import Task
+from fit_acquisition.tasks.task_worker import TaskWorker
 
 
-class WhoisWorker(QObject):
+class WhoisWorker(TaskWorker):
     logger = logging.getLogger("whois")
-    finished = Signal()
-    started = Signal()
-    error = Signal(object)
-
-    def __init__(self):
-        QObject.__init__(self)
-        self.translations = load_translations()
-
-    @property
-    def url(self):
-        return self._url
-
-    @url.setter
-    def url(self, url):
-        self._url = url
 
     def __whois(self, url, flags=0):
         ip_match = IPV4_OR_V6.match(url)
@@ -60,7 +43,7 @@ class WhoisWorker(QObject):
     def start(self):
         self.started.emit()
         try:
-            result = self.__whois(self.url)
+            result = self.__whois(self.options["url"])
             self.logger.info(result)
             self.finished.emit()
         except socket.herror as e:
@@ -91,57 +74,21 @@ class WhoisWorker(QObject):
 
 class TaskWhois(Task):
     def __init__(self, logger, progress_bar=None, status_bar=None):
-        super().__init__(logger, progress_bar, status_bar)
-
-        self.translations = load_translations()
-
-        self.label = self.translations["WHOIS"]
-
-        self.worker_thread = QThread()
-        self.worker = WhoisWorker()
-        self.worker.moveToThread(self.worker_thread)
-        self.worker_thread.started.connect(self.worker.start)
-        self.worker.started.connect(self.__started)
-        self.worker.finished.connect(self.__finished)
-        self.worker.error.connect(self.__handle_error)
-
-        self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
-
-    def __handle_error(self, error):
-        self.__finished(Status.FAILURE, error.get("details"))
+        super().__init__(
+            logger,
+            progress_bar,
+            status_bar,
+            label="WHOIS",
+            worker_class=WhoisWorker,
+        )
+    
 
     def start(self):
-        self.update_task(State.STARTED, Status.PENDING)
-        self.set_message_on_the_statusbar(self.translations["WHOIS_STARTED"])
-        self.worker.url = self.options["url"]
-        self.worker_thread.start()
+        super().start_task(self.translations["WHOIS_STARTED"])
+    
 
-    def __started(self):
-        self.update_task(State.STARTED, Status.SUCCESS)
-        self.started.emit()
-
-    def __finished(self, status=Status.SUCCESS, details=""):
-        self.logger.info(
-            self.translations["WHOIS_GET_INFO_URL"].format(
-                status.name, self.options["url"]
-            )
+    def _finished(self, status=Status.SUCCESS, details=""):
+        message = self.translations["WHOIS_GET_INFO_URL"].format(
+            status.name, self.options["url"]
         )
-        self.set_message_on_the_statusbar(self.translations["WHOIS_COMPLETED"])
-        self.update_progress_bar()
-
-        self.update_task(State.COMPLETED, status, details)
-
-        self.finished.emit()
-
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
-
-        self.worker_thread.quit()
-        self.worker_thread.wait()
-
-    def __destroyed_handler(self, _dict):
-        if hasattr(self, "worker_thread") and isValid(self.worker_thread):
-            if self.worker_thread.isRunning():
-                self.worker_thread.quit()
-                self.worker_thread.wait()
+        super()._finished(status, details, message)
