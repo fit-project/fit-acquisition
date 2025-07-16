@@ -18,6 +18,7 @@ import os
 from PySide6.QtCore import QObject, QEventLoop, QTimer, Signal, QThread
 
 from fit_acquisition.task import Task
+from fit_acquisition.task_worker import TaskWorker
 
 
 from fit_configurations.controller.tabs.packetcapture.packetcapture import (
@@ -28,26 +29,23 @@ from fit_configurations.controller.tabs.packetcapture.packetcapture import (
 from fit_common.gui.utils import State, Status
 
 
-from fit_acquisition.lang import load_translations
-
-
-class PacketCaptureWorker(QObject):
-    finished = Signal()
-    started = Signal()
-    error = Signal(object)
+class PacketCaptureWorker(TaskWorker):
 
     def __init__(self):
-        QObject.__init__(self)
-        self.options = None
+        super().__init__()
         self.output_file = None
         self.sniffer = scapy.AsyncSniffer()
 
-        self.translations = load_translations()
+    @TaskWorker.options.getter
+    def options(self):
+        return self._options
 
-    def set_options(self, options):
-        self.output_file = os.path.join(
+    @options.setter
+    def options(self, options):
+        options["output_file"] = os.path.join(
             options["acquisition_directory"], options["filename"]
         )
+        self._options = options
 
     def start(self):
         self.started.emit()
@@ -68,7 +66,7 @@ class PacketCaptureWorker(QObject):
             loop = QEventLoop()
             QTimer.singleShot(1000, loop.quit)
             loop.exec()
-            scapy.wrpcap(self.output_file, self.sniffer.results)
+            scapy.wrpcap(self.options.get("output_file"), self.sniffer.results)
             self.finished.emit()
         except Exception as e:
             self.error.emit(
@@ -83,8 +81,6 @@ class PacketCaptureWorker(QObject):
 class TaskPacketCapture(Task):
     def __init__(self, logger, progress_bar=None, status_bar=None):
         super().__init__(logger, progress_bar, status_bar)
-
-        self.translations = load_translations()
 
         self.label = self.translations["PACKET_CAPTURE"]
         self.is_infinite_loop = True
@@ -120,7 +116,7 @@ class TaskPacketCapture(Task):
             self.translations["NETWORK_PACKET_CAPTURE_STARTED"]
         )
 
-        self.worker.set_options(self.options)
+        self.worker.options = self.options
         self.worker_thread.start()
 
     def __started(self):

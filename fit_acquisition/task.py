@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QStatusBar, QLabel
 from fit_common.gui.utils import Status, State
 
 from fit_acquisition.tasks_handler import TasksHandler
+from fit_acquisition.lang import load_translations
 
 
 class Task(QObject):
@@ -33,15 +34,17 @@ class Task(QObject):
         self.details = ""
         self.task_handler = TasksHandler()
         self.task_handler.add_task(self)
-        self._increment = 0
+        self.__increment = 0
+
+        self.__translations = load_translations()
 
     @property
     def label(self):
-        return self._label
+        return self.__label
 
     @label.setter
     def label(self, label):
-        self._label = label
+        self.__label = label
 
     @property
     def options(self):
@@ -53,51 +56,55 @@ class Task(QObject):
 
     @property
     def state(self):
-        return self._state
+        return self.__state
 
     @state.setter
     def state(self, state):
-        self._state = state
+        self.__state = state
 
     @property
     def status(self):
-        return self._status
+        return self.__status
 
     @status.setter
     def status(self, status):
-        self._status = status
+        self.__status = status
 
     @property
     def details(self):
-        return self._details
+        return self.__details
 
     @details.setter
     def details(self, details):
-        self._details = details
+        self.__details = details
 
     @property
     def increment(self):
-        return self._increment
+        return self.__increment
 
     @increment.setter
     def increment(self, increment):
-        self._increment = increment
+        self.__increment = increment
 
     @property
     def sub_tasks(self):
-        return self._sub_tasks
+        return self.__sub_tasks
 
     @property
     def is_infinite_loop(self):
-        return self._is_infinite_loop
+        return self.__is_infinite_loop
 
     @is_infinite_loop.setter
     def is_infinite_loop(self, is_infinite_loop):
-        self._is_infinite_loop = is_infinite_loop
+        self.__is_infinite_loop = is_infinite_loop
 
     @sub_tasks.setter
     def sub_tasks(self, sub_tasks):
-        self._sub_tasks = sub_tasks
+        self.__sub_tasks = sub_tasks
+
+    @property
+    def translations(self):
+        return self.__translations
 
     def update_progress_bar(self):
         if self.progress_bar is not None:

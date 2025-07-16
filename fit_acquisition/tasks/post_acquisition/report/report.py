@@ -30,6 +30,10 @@ class ReportWorker(QObject):
     started = Signal()
     error = Signal(object)
 
+    def __init__(self):
+        QObject.__init__(self)
+        self.translations = load_translations()
+
     def set_options(self, options):
         self.folder = options["acquisition_directory"]
         self.type = options["type"]

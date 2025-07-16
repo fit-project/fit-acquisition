@@ -122,6 +122,43 @@ class Acquisition(QObject):
     def status_bar(self, value):
         self.__status_bar = value
 
+    @property
+    def status_bar_visible(self) -> bool:
+        return self.__status_bar.isVisible() if self.__status_bar else False
+
+    @status_bar_visible.setter
+    def status_bar_visible(self, visible: bool):
+        if self.__status_bar:
+            self.__status_bar.setVisible(visible)
+
+    @property
+    def progress_bar_visible(self) -> bool:
+        return self.__progress_bar.isVisible() if self.__progress_bar else False
+
+    @progress_bar_visible.setter
+    def progress_bar_visible(self, visible: bool):
+        if self.__progress_bar:
+            self.__progress_bar.setVisible(visible)
+
+    @property
+    def reset_status_bar(self):
+        if self.__status_bar:
+            self.__status_bar.setText("")
+
+    @property
+    def reset_progress_bar(self):
+        if self.__progress_bar:
+            self.__progress_bar.setValue(0)
+
+    @property
+    def progress(self) -> int:
+        return self.__progress_bar.value() if self.__progress_bar else 0
+
+    @progress.setter
+    def progress(self, value: int):
+        if self.__progress_bar:
+            self.__progress_bar.setValue(value)
+
     def load_tasks(self):
         self.log_confing = LogConfigTools()
 
