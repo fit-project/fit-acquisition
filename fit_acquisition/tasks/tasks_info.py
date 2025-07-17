@@ -26,6 +26,11 @@ class TasksInfo(QtWidgets.QDialog):
         self.__connect_task_signals()
         self.translations = load_translations()
 
+        # 🔁 Timer per aggiornare i task attivi
+        self._active_tasks_timer = QtCore.QTimer(self)
+        self._active_tasks_timer.timeout.connect(self.update_active_tasks_status)
+        self._active_tasks_timer.start(1000)
+
     def __init_ui(self):
         self.setWindowFlags(QtCore.Qt.WindowType.FramelessWindowHint)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_TranslucentBackground)
@@ -33,11 +38,34 @@ class TasksInfo(QtWidgets.QDialog):
         self.ui = Ui_tasks_info()
         self.ui.setupUi(self)
 
+        # Nuovo: QLabel per i task attivi
+        self.active_tasks_label = QtWidgets.QLabel()
+        self.active_tasks_label.setStyleSheet("color: lightgreen; font-weight: bold;")
+        self.ui.content_box_layout.insertWidget(0, self.active_tasks_label)
+
         if self.parent():
             self.setGeometry(self.parent().geometry())
 
         self.ui.task_log_text.setReadOnly(True)
         self.ui.task_log_text.clear()
+
+    def update_active_tasks_status(self):
+        active_tasks = [
+            task
+            for task in self.task_handler.get_tasks()
+            if hasattr(task, "is_active") and task.is_active()
+        ]
+
+        if active_tasks:
+            lines = [
+                f"🟡 {task.label} (da {task.get_elapsed_time().seconds}s)"
+                for task in active_tasks
+            ]
+            text = "Task attivi:\n" + "\n".join(lines)
+        else:
+            text = "✅ Nessun task attivo."
+
+        self.active_tasks_label.setText(text)
 
     def __connect_task_signals(self):
         tasks = self.task_handler.get_tasks()

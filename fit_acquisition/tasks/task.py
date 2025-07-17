@@ -7,6 +7,8 @@
 # -----
 ######
 
+from datetime import datetime, timedelta
+
 from fit_common.gui.utils import State, Status
 from PySide6.QtCore import QEventLoop, QObject, QThread, QTimer, Signal
 from PySide6.QtWidgets import QLabel, QStatusBar
@@ -29,13 +31,16 @@ class Task(QObject):
         *,
         label=None,
         is_infinite_loop=False,
-        worker_class=None
+        worker_class=None,
     ):
         super().__init__()
 
         self.logger = logger
         self.progress_bar = progress_bar
         self.status_bar = status_bar
+
+        self.__start_time = None  # 🆕 timestamp di avvio
+        self.__end_time = None  # 🆕 timestamp di fine
 
         self.state = State.INITIALIZATED
         self.status = Status.SUCCESS
@@ -60,6 +65,22 @@ class Task(QObject):
             self.worker.error.connect(self._handle_error)
 
         self.destroyed.connect(lambda: self._destroyed_handler(self.__dict__))
+
+    def is_active(self):
+        return self.state == State.STARTED and self.status == Status.PENDING
+
+    def get_elapsed_time(self) -> timedelta:
+        if self.__start_time and not self.__end_time:
+            return datetime.now() - self.__start_time
+        return timedelta(0)
+
+    def get_status_summary(self):
+        if self.is_active():
+            return f"{self.label} in esecuzione da {self.get_elapsed_time().seconds} secondi"
+        elif self.state == State.COMPLETED:
+            return f"{self.label} completato con stato {self.status.name}"
+        else:
+            return f"{self.label} ({self.state.name})"
 
     @property
     def options(self):
@@ -150,10 +171,13 @@ class Task(QObject):
         self.details = details
 
     def _started(self, details=""):
+        self.__start_time = datetime.now()  # ⏱️ avvio
+        self.__end_time = None
         self.update_task(State.STARTED, Status.SUCCESS, details)
         self.started.emit()
 
     def _finished(self, status=Status.SUCCESS, details="", message=""):
+        self.__end_time = datetime.now()  # ⏱️ fine
         self.logger.info(message)
         self.set_message_on_the_statusbar(message)
         self.update_progress_bar()
