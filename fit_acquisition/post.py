@@ -8,10 +8,11 @@
 ######
 
 import os
+
 from PySide6.QtCore import QObject, Signal
 
-from fit_acquisition.tasks_handler import TasksHandler
 from fit_acquisition.class_names import *
+from fit_acquisition.tasks.tasks_handler import TasksHandler
 
 
 class PostAcquisition(QObject):

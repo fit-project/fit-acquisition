@@ -11,8 +11,8 @@ import datetime
 import logging
 import os
 
-from fit_configurations.controller.tabs.network.networktools import (
-    NetworkTools as NetworkToolsController,
+from fit_configurations.controller.tabs.network.network_tool import (
+    NetworkToolController,
 )
 
 # Produce RFC 3339 timestamps
@@ -101,7 +101,7 @@ class LogConfigTools:
 
     def set_dynamic_loggers(self):
         # ENABLE/DISABLE WHOIS
-        if NetworkToolsController().configuration["whois"]:
+        if NetworkToolController().configuration["whois"]:
             self.config["formatters"]["whois"] = {
                 "class": "logging.Formatter",
                 "format": "%(message)s",
@@ -122,7 +122,7 @@ class LogConfigTools:
                 self.config["loggers"].pop("whois")
 
         # ENABLE/DISABLE HEADERS
-        if NetworkToolsController().configuration["headers"]:
+        if NetworkToolController().configuration["headers"]:
             self.config["formatters"]["headers"] = {
                 "class": "logging.Formatter",
                 "format": "%(message)s",
@@ -146,7 +146,7 @@ class LogConfigTools:
                 self.config["loggers"].pop("headers")
 
         # ENABLE/DISABLE NSLOOKUP
-        if NetworkToolsController().configuration["nslookup"]:
+        if NetworkToolController().configuration["nslookup"]:
             self.config["formatters"]["nslookup"] = {
                 "class": "logging.Formatter",
                 "format": "%(message)s",

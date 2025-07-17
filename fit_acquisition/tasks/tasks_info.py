@@ -7,13 +7,14 @@
 # -----
 ######
 
-from PySide6 import QtCore, QtWidgets
 from datetime import datetime
 
-from fit_acquisition.tasks_handler import TasksHandler
-from fit_acquisition.tasks_info_ui import Ui_tasks_info
 from fit_common.gui.utils import Status
+from PySide6 import QtCore, QtWidgets
+
 from fit_acquisition.lang import load_translations
+from fit_acquisition.tasks.tasks_handler import TasksHandler
+from fit_acquisition.tasks.tasks_info_ui import Ui_tasks_info
 
 
 class TasksInfo(QtWidgets.QDialog):

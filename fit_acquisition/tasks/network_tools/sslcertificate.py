@@ -69,12 +69,15 @@ class SSLCertificateWorker(TaskWorker):
     def start(self):
         self.started.emit()
         try:
-            is_peer_certificate_exist = self.__check_if_peer_certificate_exist(self.options["url"])
+            is_peer_certificate_exist = self.__check_if_peer_certificate_exist(
+                self.options["url"]
+            )
 
             if is_peer_certificate_exist:
                 certificate = self.__get_peer_PEM_cert(self.options["url"])
                 self.__save_PEM_cert_to_CER_cert(
-                    os.path.join(self.folder, "server.cer"), certificate
+                    os.path.join(self.options["acquisition_directory"], "server.cer"),
+                    certificate,
                 )
 
             self.finished.emit()
@@ -127,7 +130,6 @@ class TaskSSLCertificate(Task):
 
     def start(self):
         super().start_task(self.translations["SSLCERTIFICATE_STARTED"])
-    
 
     def _finished(self, status=Status.SUCCESS, details=""):
         if status == Status.SUCCESS:

@@ -8,33 +8,21 @@
 ######
 
 import logging.config
-from shiboken6 import isValid
-
-from PySide6.QtCore import QObject, Signal
-
-from fit_acquisition.post import PostAcquisition
-from fit_acquisition.logger import LogConfigTools
-
-from fit_acquisition.tasks_manager import TasksManager
-from fit_acquisition.class_names import *
-from fit_configurations.controller.tabs.network.networkcheck import (
-    NetworkControllerCheck,
-)
+from enum import Enum
 
 from fit_common.core.utils import get_ntp_date_and_time
 from fit_common.gui.utils import State
+from fit_configurations.controller.tabs.network.network_check import (
+    NetworkCheckController,
+)
+from PySide6.QtCore import QObject, Signal
+from shiboken6 import isValid
 
-
+from fit_acquisition.class_names import *
 from fit_acquisition.lang import load_translations
-
-from enum import Enum
-
-
-import fit_acquisition.tasks.infinite_loop
-import fit_acquisition.tasks.network_tools
-import fit_acquisition.tasks.post_acquisition
-import fit_acquisition.tasks.post_acquisition.pec
-import fit_acquisition.tasks.post_acquisition.report
+from fit_acquisition.logger import LogConfigTools
+from fit_acquisition.post import PostAcquisition
+from fit_acquisition.tasks.tasks_manager import TasksManager
 
 
 class AcquisitionStatus(Enum):
@@ -65,11 +53,9 @@ class Acquisition(QObject):
         self.tasks_manager = TasksManager()
 
         core_task_packages = [
-            fit_acquisition.tasks.infinite_loop,
-            fit_acquisition.tasks.nettools,
-            fit_acquisition.tasks.post_acquisition,
-            fit_acquisition.tasks.post_acquisition.pec,
-            fit_acquisition.tasks.post_acquisition.report,
+            "fit_acquisition.tasks.infinite_loop",
+            "fit_acquisition.tasks.network_tools",
+            "fit_acquisition.tasks.post_acquisition",
         ]
 
         packages += core_task_packages
@@ -256,7 +242,7 @@ class Acquisition(QObject):
 
     def get_time(self):
         return get_ntp_date_and_time(
-            NetworkControllerCheck().configuration["ntp_server"]
+            NetworkCheckController().configuration["ntp_server"]
         )
 
     def calculate_increment(self):

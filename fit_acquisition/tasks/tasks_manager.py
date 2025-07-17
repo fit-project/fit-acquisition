@@ -7,27 +7,26 @@
 # -----
 ######
 
-from PySide6.QtCore import QObject, Signal
 import pkgutil
 import sys
-from inspect import isclass
 from importlib import import_module
+from inspect import getmembers, isclass
 
-from fit_acquisition.tasks_handler import TasksHandler
+from fit_configurations.controller.tabs.network.network_tool import (
+    NetworkToolController,
+)
+from fit_configurations.controller.tabs.packet_capture.packet_capture import (
+    PacketCaptureController,
+)
+from fit_configurations.controller.tabs.pec.pec import PecController
+from fit_configurations.controller.tabs.screen_recorder.screen_recorder import (
+    ScreenRecorderController,
+)
+from fit_configurations.controller.tabs.timestamp.timestamp import TimestampController
+from PySide6.QtCore import QObject, Signal
+
 from fit_acquisition import class_names
-from fit_configurations.controller.tabs.packetcapture.packetcapture import (
-    PacketCapture as PacketCaptureCotroller,
-)
-from fit_configurations.controller.tabs.screenrecorder.screenrecorder import (
-    ScreenRecorder as ScreenRecorderConfigurationController,
-)
-from fit_configurations.controller.tabs.timestamp.timestamp import (
-    Timestamp as TimestampController,
-)
-from fit_configurations.controller.tabs.pec.pec import Pec as PecController
-from fit_configurations.controller.tabs.network.networktools import (
-    NetworkTools as NetworkToolsController,
-)
+from fit_acquisition.tasks.tasks_handler import TasksHandler
 
 
 class TasksManager(QObject):
@@ -38,21 +37,21 @@ class TasksManager(QObject):
         self.class_names_modules = dict()
         self.task_handler = TasksHandler()
 
-        self.task_packages = list()
+        self.task_package_names = list()
 
-    def register_task_package(self, package):
-        self.task_packages.append(package)
+    def register_task_package(self, package_name: str):
+        if isinstance(package_name, str):
+            self.task_package_names.append(package_name)
 
     def load_all_task_modules(self):
-        for package in self.task_packages:
-            self.__load_task_modules_from_package(package)
+        for package_name in self.task_package_names:
+            self.__load_task_modules_from_package(package_name)
 
-    def __load_task_modules_from_package(self, package):
-        if isinstance(package, str):
-            try:
-                package = import_module(package)
-            except ModuleNotFoundError:
-                return
+    def __load_task_modules_from_package(self, package_name: str):
+        try:
+            package = import_module(package_name)
+        except ModuleNotFoundError:
+            return
 
         for importer, modname, ispkg in pkgutil.walk_packages(
             path=package.__path__, prefix=package.__name__ + ".", onerror=lambda x: None
@@ -61,15 +60,13 @@ class TasksManager(QObject):
                 import_module(modname)
 
             if modname in sys.modules and not ispkg:
-                class_name = class_names.__dict__.get(modname.rsplit(".", 1)[1].upper())
-                if (
-                    class_name
-                    and isclass(getattr(sys.modules[modname], class_name, None))
-                    and bool(self.is_enabled_tasks(class_name))
-                ):
-                    self.class_names_modules.setdefault(class_name, []).append(
-                        sys.modules[modname]
-                    )
+                module = sys.modules[modname]
+
+                for name, obj in getmembers(module, isclass):
+                    if getattr(obj, "__is_task__", False) and bool(
+                        self.is_enabled_tasks(name)
+                    ):
+                        self.class_names_modules.setdefault(name, []).append(module)
 
     def is_enabled_tasks(self, tasks):
         if isinstance(tasks, str):
@@ -84,25 +81,25 @@ class TasksManager(QObject):
         for task in tasks:
             if (
                 task == class_names.PACKETCAPTURE
-                and PacketCaptureCotroller().options["enabled"] is False
+                and PacketCaptureController().configuration["enabled"] is False
                 or task == class_names.SCREENRECORDER
-                and ScreenRecorderConfigurationController().options["enabled"] is False
+                and ScreenRecorderController().configuration["enabled"] is False
                 or task == class_names.TIMESTAMP
-                and TimestampController().options["enabled"] is False
+                and TimestampController().configuration["enabled"] is False
                 or task == class_names.PEC_AND_DOWNLOAD_EML
-                and PecController().options["enabled"] is False
+                and PecController().configuration["enabled"] is False
                 or task == class_names.SSLKEYLOG
-                and NetworkToolsController().configuration["ssl_keylog"] is False
+                and NetworkToolController().configuration["ssl_keylog"] is False
                 or task == class_names.SSLCERTIFICATE
-                and NetworkToolsController().configuration["ssl_certificate"] is False
+                and NetworkToolController().configuration["ssl_certificate"] is False
                 or task == class_names.HEADERS
-                and NetworkToolsController().configuration["headers"] is False
+                and NetworkToolController().configuration["headers"] is False
                 or task == class_names.WHOIS
-                and NetworkToolsController().configuration["whois"] is False
+                and NetworkToolController().configuration["whois"] is False
                 or task == class_names.NSLOOKUP
-                and NetworkToolsController().configuration["nslookup"] is False
+                and NetworkToolController().configuration["nslookup"] is False
                 or task == class_names.TRACEROUTE
-                and NetworkToolsController().configuration["traceroute"] is False
+                and NetworkToolController().configuration["traceroute"] is False
             ):
                 _tasks.remove(task)
 

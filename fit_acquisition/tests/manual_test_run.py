@@ -1,23 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
+import logging.config
 import os
 import sys
-import logging.config
 
-
+from fit_common.core.utils import resolve_path
+from fit_configurations.logger import LogConfigTools
 from PySide6 import QtCore, QtWidgets
 from PySide6.QtCore import Qt
 
-from fit_common.core.utils import resolve_path
-
 from fit_acquisition.acquisition import Acquisition
-from fit_acquisition.tasks_info import TasksInfo
 from fit_acquisition.class_names import *
-
-from fit_configurations.logger import LogConfigTools
-
 from fit_acquisition.lang import load_translations
+from fit_acquisition.tasks.tasks_info import TasksInfo
 
 
 class MainWindow(QtWidgets.QMainWindow):

@@ -13,14 +13,24 @@ from PySide6.QtWidgets import QLabel, QStatusBar
 from shiboken6 import isValid
 
 from fit_acquisition.lang import load_translations
-from fit_acquisition.tasks_handler import TasksHandler
+from fit_acquisition.tasks.tasks_handler import TasksHandler
 
 
 class Task(QObject):
     started = Signal()
     finished = Signal()
+    __is_task__ = True
 
-    def __init__(self, logger, progress_bar, status_bar, *, label=None, is_infinite_loop=False, worker_class=None):
+    def __init__(
+        self,
+        logger,
+        progress_bar,
+        status_bar,
+        *,
+        label=None,
+        is_infinite_loop=False,
+        worker_class=None
+    ):
         super().__init__()
 
         self.logger = logger
@@ -110,7 +120,7 @@ class Task(QObject):
     @property
     def translations(self):
         return self.__translations
-    
+
     def start_task(self, message):
         self.update_task(State.STARTED, Status.PENDING)
         self.set_message_on_the_statusbar(message)
