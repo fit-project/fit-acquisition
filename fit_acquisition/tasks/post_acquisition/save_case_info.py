@@ -22,8 +22,8 @@ class SaveCaseInfoWorker(TaskWorker):
     def start(self):
         self.started.emit()
         file = os.path.join(self.options.get("acquisition_directory"), "caseinfo.json")
-        case_info = self.options.get("case_info")
-        logo_bin = case_info.get("logo_bin")
+        case_info = self.options["case_info"]
+        logo_bin = case_info["logo_bin"]
 
         if logo_bin:
             __logo_bin = base64.b64encode(logo_bin)

@@ -18,7 +18,9 @@ from fit_configurations.logger import LogConfigTools
 from PySide6.QtWidgets import QMainWindow
 
 from fit_acquisition.lang import load_translations
-from fit_acquisition.tasks.post_acquisition.timestamp import TaskTimestamp
+from fit_acquisition.tasks.post_acquisition.zip_and_remove_folder import (
+    TaskZipAndRemoveFolder,
+)
 from fit_acquisition.tests.tasks.tasks_ui import Ui_MainWindow
 
 translations = load_translations()
@@ -27,20 +29,38 @@ logger = logging.getLogger("view.scrapers.web.web")
 
 @pytest.fixture(scope="module")
 def acquisition_files():
-    acquisition_directory = resolve_path("acquisition/tasks/timestamp_test_folder")
-    os.makedirs(acquisition_directory, exist_ok=True)
+    acquisition_directory = resolve_path("acquisition/tasks/zip_and_remove_folder_test_folder")
+    acquisition_content_directory = os.path.join(acquisition_directory, "acquisition_content")
+    downloads = os.path.join(acquisition_directory, "downloads")
+
+    os.makedirs(acquisition_content_directory, exist_ok=True)
+    os.makedirs(downloads, exist_ok=True)
 
     pdf_filename = "acquisition_report.pdf"
+    tsr_filename = "timestamp.tsr"
+    crt_filename = "tsa.crt"
 
     # Creazione file PDF fittizio
-    with open(os.path.join(acquisition_directory, pdf_filename), "w") as f:
+    with open(os.path.join(acquisition_content_directory, pdf_filename), "w") as f:
         f.write("This is not pdf file \n")
 
+    # Creazione file TSR fittizio
+    with open(os.path.join(acquisition_content_directory, tsr_filename), "w") as f:
+        f.write("This is not tsr file \n")
+
+    # Creazione file CRT fittizio
+    with open(os.path.join(downloads, crt_filename), "w") as f:
+        f.write("This is not crt file \n")
 
     return {
         "acquisition_directory": acquisition_directory,
-        "pdf_filename": pdf_filename
+        "acquisition_content_directory": acquisition_content_directory,
+        "downloads": downloads,
+        "pdf_filename": pdf_filename,
+        "tsr_filename": tsr_filename,
+        "crt_filename": crt_filename,
     }
+
 
 @pytest.fixture
 def main_window(qtbot):
@@ -62,30 +82,30 @@ def task_instance(main_window, acquisition_files):
     log_tools.change_filehandlers_path(acquisition_files["acquisition_directory"])
     logging.config.dictConfig(log_tools.config)
 
-    task = TaskTimestamp(
+    task = TaskZipAndRemoveFolder(
         logger,
         ui.progressBar,
         ui.statusbar,
     )
 
     task.options = {
-        "acquisition_directory": acquisition_files["acquisition_directory"],
-        "pdf_filename": "acquisition_report.pdf",
+            "acquisition_directory": acquisition_files["acquisition_directory"],
+            "acquisition_content_directory": acquisition_files["acquisition_content_directory"],
     }
 
     return task, ui
 
 
-def test_init_timestamp_task(task_instance):
+def test_init_zip_and_remove_folder_task(task_instance):
     task, _ = task_instance
 
-    assert task.label == translations["TIMESTAMP"]
+    assert task.label == translations["ZIP_AND_REMOVE_FOLDER"]
     assert task.state == State.INITIALIZATED
     assert task.status == Status.SUCCESS
     assert task.progress_bar.value() == 0
 
 
-def test_timestamp_task(task_instance, qtbot, acquisition_files):
+def test_zip_and_remove_folder_task(task_instance, qtbot, acquisition_files):
     task, ui = task_instance
 
 
@@ -93,15 +113,13 @@ def test_timestamp_task(task_instance, qtbot, acquisition_files):
         task.start()
         task.increment = 100
 
-    
-    print("Task status:", task.status)
-    print("Task details:", task.details)
-    print("Status bar:", ui.statusbar.currentMessage())
-
     assert task.state == State.COMPLETED
     assert task.status == Status.SUCCESS
-    assert ui.statusbar.currentMessage() == translations["TIMESTAMP_APPLY"].format(Status.SUCCESS.name, task.options["pdf_filename"], task.options["server_name"])
+    assert ui.statusbar.currentMessage() == translations["ZIP_AND_REMOVE_FOLDER_COMPLETED"].format(Status.SUCCESS.name)
     assert task.progress_bar.value() == 100
 
-    assert os.path.exists(os.path.join(acquisition_files["acquisition_directory"], "timestamp.tsr"))
-    assert os.path.exists(os.path.join(acquisition_files["acquisition_directory"], "tsa.crt"))
+
+
+
+    assert os.path.exists(os.path.join(acquisition_files["acquisition_directory"], "acquisition_content.zip"))
+    assert os.path.exists(os.path.join(acquisition_files["acquisition_directory"], "downloads.zip"))
