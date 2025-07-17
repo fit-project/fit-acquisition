@@ -419,7 +419,7 @@ class GenerateReport:
                 self.cases_folder_path, "screenshot.png"
             )
 
-            if os.path.isdir(full_screenshot_path):  # MODIFICA
+            if os.path.isdir(full_screenshot_path):
                 url_folder = [
                     file
                     for file in os.listdir(full_screenshot_path)
