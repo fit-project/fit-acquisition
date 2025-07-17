@@ -82,7 +82,7 @@ class TaskHash(Task):
     
     def _finished(self, status=Status.SUCCESS, details=""):
         message = self.translations["CALCULATE_HASHFILE_COMPLETED"].format(
-                Status.SUCCESS.name
+                status.name
         )
 
         super()._finished(status, details, message)

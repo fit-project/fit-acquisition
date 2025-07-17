@@ -52,7 +52,7 @@ class TaskSaveCaseInfo(Task):
 
     def _finished(self, status=Status.SUCCESS, details=""):
         message = self.translations["SAVE_CASE_INFO_COMPLETED"].format(
-                Status.SUCCESS.name
+                status.name
         )
 
         super()._finished(status, details, message)
