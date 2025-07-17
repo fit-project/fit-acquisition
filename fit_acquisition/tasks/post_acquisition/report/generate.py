@@ -142,7 +142,7 @@ class GenerateReport:
         )
 
         # Company Logo
-        logo = self.case_info.get("logo_bin", "").strip()
+        logo = (self.case_info.get("logo_bin") or "").strip()
         if logo:
             logo = (
                 '<div style="padding-bottom: 10px;"><img src="data:image/png;base64,'
@@ -407,29 +407,32 @@ class GenerateReport:
         return hash_text
 
     def __insert_screenshot(self):
-        screenshot_text = None
+        screenshot_text = ""
+        main_screenshot = ""
         screenshots_path = os.path.join(self.cases_folder_path, "screenshot")
+        full_screenshot_path = os.path.join(
+            self.cases_folder_path, "screenshot", "full_page"
+        )
 
         if os.path.isdir(screenshots_path):
-            full_screenshot_path = os.path.join(
-                self.cases_folder_path, "screenshot", "full_page"
-            )
             main_screenshot_file = os.path.join(
                 self.cases_folder_path, "screenshot.png"
             )
 
-            # url_folder = os.listdir(full_screenshot_path)
-            url_folder = [
-                file
-                for file in os.listdir(full_screenshot_path)
-                if os.path.isdir(os.path.join(full_screenshot_path, file))
-            ]
+            if os.path.isdir(full_screenshot_path):  # MODIFICA
+                url_folder = [
+                    file
+                    for file in os.listdir(full_screenshot_path)
+                    if os.path.isdir(os.path.join(full_screenshot_path, file))
+                ]
 
-            if url_folder:
-                full_screenshot_path = os.path.join(full_screenshot_path, url_folder[0])
+                if url_folder:
+                    full_screenshot_path = os.path.join(
+                        full_screenshot_path, url_folder[0]
+                    )
 
-            images = os.listdir(full_screenshot_path)
-            main_screenshot = os.path.join(full_screenshot_path, images[0])
+                images = os.listdir(full_screenshot_path)
+                main_screenshot = os.path.join(full_screenshot_path, images[0])
 
             files = os.listdir(screenshots_path)
             for file in files:
