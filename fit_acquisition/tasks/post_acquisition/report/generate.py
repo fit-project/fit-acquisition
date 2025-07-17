@@ -9,23 +9,23 @@
 
 import base64
 import os
-
-from jinja2 import Template
+import zipfile
 from importlib.resources import files
 
-from xhtml2pdf import pisa
-from PyPDF2 import PdfMerger
-import zipfile
-
-from fit_configurations.controller.tabs.general.typesproceedings import TypesProceedings
-from fit_configurations.controller.tabs.packetcapture.packetcapture import PacketCapture
-from fit_configurations.controller.tabs.screenrecorder.screenrecorder import (
-    ScreenRecorder,
-)
-
-
 from fit_common.core.utils import get_version
+from fit_configurations.controller.tabs.general.legal_proceeding_type import (
+    LegalProceedingTypeController,
+)
+from fit_configurations.controller.tabs.packet_capture.packet_capture import (
+    PacketCaptureController,
+)
+from fit_configurations.controller.tabs.screen_recorder.screen_recorder import (
+    ScreenRecorderController,
+)
 from fit_configurations.utils import get_language
+from jinja2 import Template
+from pypdf import PdfReader, PdfWriter
+from xhtml2pdf import pisa
 
 from fit_acquisition.lang import load_translations
 
@@ -110,7 +110,7 @@ class GenerateReport:
             {
                 "value": self.translations["PROCEEDING"],
                 "desc": str(
-                    TypesProceedings().get_proceeding_name_by_id(
+                    LegalProceedingTypeController().get_proceeding_name_by_id(
                         self.case_info.get("proceeding_type", 0)
                     )
                 ),
@@ -159,10 +159,16 @@ class GenerateReport:
         # Acquisition Files
         acquisition_files = self._acquisition_files_names()
         file_checks = [
-            (ScreenRecorder().options.get("filename"), self.translations["AVID"]),
+            (
+                ScreenRecorderController().configuration["filename"],
+                self.translations["AVID"],
+            ),
             ("acquisition.hash", self.translations["HASHD"]),
             ("acquisition.log", self.translations["LOGD"]),
-            (PacketCapture().options.get("filename"), self.translations["PCAPD"]),
+            (
+                PacketCaptureController().configuration["filename"],
+                self.translations["PCAPD"],
+            ),
             ("acquisition.zip", self.translations["ZIPD"]),
             ("whois.txt", self.translations["WHOISD"]),
             ("headers.txt", self.translations["HEADERSD"]),
@@ -279,12 +285,20 @@ class GenerateReport:
         with open(self.output_content, "w+b") as content_result:
             pisa.CreatePDF(content_index, dest=content_result, options=pdf_options)
 
-        merger = PdfMerger()
-        merger.append(self.output_front)
-        merger.append(self.output_content)
+        writer = PdfWriter()
+        with open(self.output_front, "rb") as f_front:
+            reader_front = PdfReader(f_front)
+            for page in reader_front.pages:
+                writer.add_page(page)
 
-        merger.write(os.path.join(self.cases_folder_path, "acquisition_report.pdf"))
-        merger.close()
+        with open(self.output_content, "rb") as f_content:
+            reader_content = PdfReader(f_content)
+            for page in reader_content.pages:
+                writer.add_page(page)
+
+        output_path = os.path.join(self.cases_folder_path, "acquisition_report.pdf")
+        with open(output_path, "wb") as f_out:
+            writer.write(f_out)
 
         if os.path.exists(self.output_front):
             os.remove(self.output_front)
@@ -312,8 +326,8 @@ class GenerateReport:
         for file in files:
             acquisition_files[file] = file
 
-        screen_recorder_filename = ScreenRecorder().options.get("filename")
-        packet_capture_filename = PacketCapture().options.get("filename")
+        screen_recorder_filename = ScreenRecorderController().configuration["filename"]
+        packet_capture_filename = PacketCaptureController().configuration["filename"]
 
         file_checks = [
             screen_recorder_filename,
@@ -454,7 +468,7 @@ class GenerateReport:
         for file in files:
             acquisition_files[file] = file
 
-        screen_recorder_filename = ScreenRecorder().options.get("filename")
+        screen_recorder_filename = ScreenRecorderController().configuration["filename"]
 
         matching_files = [
             file

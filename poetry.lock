@@ -440,7 +440,7 @@ resolved_reference = "15c3c55cf2e9e5c382eb4427dadbc9a3d6be3777"
 
 [[package]]
 name = "fit-configurations"
-version = "1.0.10"
+version = "1.0.11"
 description = "This module provides the graphical interface for configuring settings used by the FIT application."
 optional = false
 python-versions = ">=3.9,<3.13"
@@ -458,7 +458,7 @@ sqlalchemy = "^2.0.40"
 type = "git"
 url = "https://github.com/fit-project/fit-configurations.git"
 reference = "main"
-resolved_reference = "f8b00a909b69f86ec84254d992b7e0b2a16aa2f8"
+resolved_reference = "fbd7c3c8725aa15b263d5008fd3a1c5218119724"
 
 [[package]]
 name = "greenlet"
@@ -1375,28 +1375,6 @@ full = ["Pillow (>=8.0.0)", "cryptography"]
 image = ["Pillow (>=8.0.0)"]
 
 [[package]]
-name = "pypdf2"
-version = "3.0.1"
-description = "A pure-python PDF library capable of splitting, merging, cropping, and transforming PDF files"
-optional = false
-python-versions = ">=3.6"
-groups = ["main"]
-files = [
-    {file = "PyPDF2-3.0.1.tar.gz", hash = "sha256:a74408f69ba6271f71b9352ef4ed03dc53a31aa404d29b5d31f53bfecfee1440"},
-    {file = "pypdf2-3.0.1-py3-none-any.whl", hash = "sha256:d16e4205cfee272fbdc0568b68d82be796540b1537508cef59388f839c191928"},
-]
-
-[package.dependencies]
-typing_extensions = {version = ">=3.10.0.0", markers = "python_version < \"3.10\""}
-
-[package.extras]
-crypto = ["PyCryptodome"]
-dev = ["black", "flit", "pip-tools", "pre-commit (<2.18.0)", "pytest-cov", "wheel"]
-docs = ["myst_parser", "sphinx", "sphinx_rtd_theme"]
-full = ["Pillow", "PyCryptodome"]
-image = ["Pillow"]
-
-[[package]]
 name = "pyside6"
 version = "6.9.0"
 description = "Python bindings for the Qt cross-platform application and UI framework"
@@ -2242,4 +2220,4 @@ test = ["coverage (>=5.3)", "tomli (>=2.0.1) ; python_version < \"3.11\"", "tox"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.13"
-content-hash = "d904a8023bd785505aa45ec011148ba0108895da4e19208a6de4b62e8e95f244"
+content-hash = "010fc240fa38cd378e499e6121f62767efbe1fadaf2976d7a8cfae810120d25b"
