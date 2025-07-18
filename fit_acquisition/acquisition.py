@@ -8,7 +8,7 @@
 ######
 
 import logging.config
-from enum import Enum
+from enum import Enum, auto
 
 from fit_common.core.utils import get_ntp_date_and_time
 from fit_common.gui.utils import State
@@ -26,9 +26,13 @@ from fit_acquisition.tasks.tasks_manager import TasksManager
 
 
 class AcquisitionStatus(Enum):
-    UNSTARTED = 1
-    STARTED = 2
-    STOPED = 3
+    UNSTARTED = auto()
+    STARTED = auto()
+    STOPPED = auto()
+    FINISHED = auto()
+
+    def __str__(self):
+        return self.name.capitalize()
 
 
 class Acquisition(QObject):
