@@ -1,4 +1,8 @@
 {
+    "TASK_IS_EXECUTING": "{} in esecuzione da {} secondi",
+    "TASK_IS_COMPLETED": "{} completato con stato {}",
+    "ACTIVE_TASKS_HEADER": "Task attivi:\n",
+    "NO_ACTIVE_TASKS": "✅ Nessun task attivo.",
     "ACQUISITION_STARTED": "Acquisizione avviata",
     "ACQUISITION_STOPPED": "Acquisizione interrotta",
     "ACQUISITION_FINISHED": "Acquisizione completata",

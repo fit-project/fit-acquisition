@@ -76,9 +76,13 @@ class Task(QObject):
 
     def get_status_summary(self):
         if self.is_active():
-            return f"{self.label} in esecuzione da {self.get_elapsed_time().seconds} secondi"
+            return self.__translations["TASK_IS_EXECUTING"].format(
+                self.label, self.get_elapsed_time().seconds
+            )
         elif self.state == State.COMPLETED:
-            return f"{self.label} completato con stato {self.status.name}"
+            return self.__translations["TASK_IS_COMPLETED"].format(
+                self.label, self.status.name
+            )
         else:
             return f"{self.label} ({self.state.name})"
 
@@ -171,13 +175,13 @@ class Task(QObject):
         self.details = details
 
     def _started(self, details=""):
-        self.__start_time = datetime.now()  # ⏱️ avvio
+        self.__start_time = datetime.now()
         self.__end_time = None
         self.update_task(State.STARTED, Status.SUCCESS, details)
         self.started.emit()
 
     def _finished(self, status=Status.SUCCESS, details="", message=""):
-        self.__end_time = datetime.now()  # ⏱️ fine
+        self.__end_time = datetime.now()
         self.logger.info(message)
         self.set_message_on_the_statusbar(message)
         self.update_progress_bar()

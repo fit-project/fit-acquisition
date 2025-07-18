@@ -20,16 +20,15 @@ from fit_acquisition.tasks.tasks_info_ui import Ui_tasks_info
 class TasksInfo(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(TasksInfo, self).__init__(parent)
-        self.task_handler = TasksHandler()
-        self._pending_tasks = set()
+        self.__task_handler = TasksHandler()
+        self.__pending_tasks = set()
         self.__init_ui()
         self.__connect_task_signals()
-        self.translations = load_translations()
+        self.__translations = load_translations()
 
-        # 🔁 Timer per aggiornare i task attivi
-        self._active_tasks_timer = QtCore.QTimer(self)
-        self._active_tasks_timer.timeout.connect(self.update_active_tasks_status)
-        self._active_tasks_timer.start(1000)
+        self.__active_tasks_timer = QtCore.QTimer(self)
+        self.__active_tasks_timer.timeout.connect(self.__update_active_tasks_status)
+        self.__active_tasks_timer.start(1000)
 
     def __init_ui(self):
         self.setWindowFlags(QtCore.Qt.WindowType.FramelessWindowHint)
@@ -38,7 +37,6 @@ class TasksInfo(QtWidgets.QDialog):
         self.ui = Ui_tasks_info()
         self.ui.setupUi(self)
 
-        # Nuovo: QLabel per i task attivi
         self.active_tasks_label = QtWidgets.QLabel()
         self.active_tasks_label.setStyleSheet("color: lightgreen; font-weight: bold;")
         self.ui.content_box_layout.insertWidget(0, self.active_tasks_label)
@@ -49,41 +47,41 @@ class TasksInfo(QtWidgets.QDialog):
         self.ui.task_log_text.setReadOnly(True)
         self.ui.task_log_text.clear()
 
-    def update_active_tasks_status(self):
+    def __update_active_tasks_status(self):
         active_tasks = [
             task
-            for task in self.task_handler.get_tasks()
+            for task in self.__task_handler.get_tasks()
             if hasattr(task, "is_active") and task.is_active()
         ]
 
         if active_tasks:
             lines = [
-                f"🟡 {task.label} (da {task.get_elapsed_time().seconds}s)"
+                f"🟡 {task.label} ({task.get_elapsed_time().seconds}s)"
                 for task in active_tasks
             ]
-            text = "Task attivi:\n" + "\n".join(lines)
+            text = self.__translations["ACTIVE_TASKS_HEADER"] + "\n".join(lines)
         else:
-            text = "✅ Nessun task attivo."
+            text = self.__translations["NO_ACTIVE_TASKS"]
 
         self.active_tasks_label.setText(text)
 
     def __connect_task_signals(self):
-        tasks = self.task_handler.get_tasks()
+        tasks = self.__task_handler.get_tasks()
         for task in tasks:
-            self._pending_tasks.add(task.label)
-            task.started.connect(lambda t=task: self.log_task_event(t, "started"))
-            task.finished.connect(lambda t=task: self._on_task_finished(t))
+            self.__pending_tasks.add(task.label)
+            task.started.connect(lambda t=task: self.__log_task_event(t, "started"))
+            task.finished.connect(lambda t=task: self.__on_task_finished(t))
 
-    def _on_task_finished(self, task):
+    def __on_task_finished(self, task):
         if task.status == Status.FAILURE:
-            self.log_task_event(task, "error", task.details)
+            self.__log_task_event(task, "error", task.details)
         else:
-            self.log_task_event(task, "finished")
-            self._pending_tasks.discard(task.label)
-            if not self._pending_tasks:
+            self.__log_task_event(task, "finished")
+            self.__pending_tasks.discard(task.label)
+            if not self.__pending_tasks:
                 QtCore.QTimer.singleShot(500, self.close)
 
-    def log_task_event(self, task, event, extra=""):
+    def __log_task_event(self, task, event, extra=""):
         now = datetime.now().strftime("%H:%M:%S")
         symbol = {"started": "▶️", "finished": "✅", "error": "❌"}.get(event, "ℹ️")
         status = f" [{task.status.name}]" if event == "finished" else ""
