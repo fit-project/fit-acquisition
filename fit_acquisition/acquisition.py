@@ -75,14 +75,14 @@ class Acquisition(QObject):
         self.stop_tasks = list()
         self._stop_emitted = False
 
-        self.post_tasks = [
+        self.__post_tasks = (
             ZIP_AND_REMOVE_FOLDER,
             SAVE_CASE_INFO,
             HASH,
             REPORT,
             TIMESTAMP,
             PEC_AND_DOWNLOAD_EML,
-        ]
+        )
 
         self.post_acquisition = PostAcquisition()
         self.post_acquisition.finished.connect(self.post_acquisition_finished.emit)
@@ -158,10 +158,10 @@ class Acquisition(QObject):
         self.log_confing.change_filehandlers_path(self.options["acquisition_directory"])
         logging.config.dictConfig(self.log_confing.config)
 
-        __all_tasks = self.start_tasks + self.stop_tasks + self.post_tasks
+        all_tasks = self.start_tasks + self.stop_tasks + list(self.__post_tasks)
 
         self.tasks_manager.init_tasks(
-            __all_tasks, self.logger, self.__progress_bar, self.__status_bar
+            all_tasks, self.logger, self.__progress_bar, self.__status_bar
         )
 
     def unload_tasks(self):
@@ -171,8 +171,6 @@ class Acquisition(QObject):
         self.tasks_manager.clear_tasks()
 
     def run_start_tasks(self):
-        self.log_start_message()
-
         tasks = self.tasks_manager.get_tasks_from_class_name(self.start_tasks)
 
         if len(tasks) == 0:
@@ -195,7 +193,6 @@ class Acquisition(QObject):
             self.start_tasks_finished.emit()
 
     def run_stop_tasks(self):
-        self.log_stop_message()
         tasks = self.tasks_manager.get_tasks_from_class_name(self.stop_tasks)
 
         if len(tasks) == 0:
