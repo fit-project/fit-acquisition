@@ -39,8 +39,8 @@ class Task(QObject):
         self.progress_bar = progress_bar
         self.status_bar = status_bar
 
-        self.__start_time = None  # 🆕 timestamp di avvio
-        self.__end_time = None  # 🆕 timestamp di fine
+        self.__start_time = None
+        self.__end_time = None
 
         self.state = State.INITIALIZATED
         self.status = Status.SUCCESS
@@ -67,7 +67,7 @@ class Task(QObject):
         self.destroyed.connect(lambda: self._destroyed_handler(self.__dict__))
 
     def is_active(self):
-        return self.state == State.STARTED and self.status == Status.PENDING
+        return self.state != State.COMPLETED
 
     def get_elapsed_time(self) -> timedelta:
         if self.__start_time and not self.__end_time:
