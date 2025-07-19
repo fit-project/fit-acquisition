@@ -48,11 +48,19 @@ class Task(QObject):
         self.__increment = 0
 
         self.__translations = load_translations()
-        self.label = self.__translations.get(label, label) if label else ""
+
+        if label is not None:
+            self.label = self.__translations.get(label, label)
+        else:
+            self.label = ""
+
         self.is_infinite_loop = is_infinite_loop
 
         self.task_handler = TasksHandler()
         self.task_handler.add_task(self)
+
+        self.worker = None
+        self.worker_thread = None
 
         if worker_class:
             self.worker_thread = QThread()
@@ -150,13 +158,15 @@ class Task(QObject):
         self.update_task(State.STARTED, Status.PENDING)
         self.set_message_on_the_statusbar(message)
 
-        self.worker.options = self.options
-        self.worker_thread.start()
+        if self.worker and self.worker_thread:
+            self.worker.options = self.options
+            self.worker_thread.start()
 
     def stop_task(self, message):
         self.update_task(State.STOPPED, Status.PENDING)
         self.set_message_on_the_statusbar(message)
-        self.worker.stop()
+        if self.worker:
+            self.worker.stop()
 
     def update_progress_bar(self):
         if self.progress_bar is not None:
@@ -188,7 +198,7 @@ class Task(QObject):
         self.update_task(State.COMPLETED, status, details)
         self.finished.emit()
 
-        if hasattr(self, "worker_thread"):
+        if self.worker_thread:
             loop = QEventLoop()
             QTimer.singleShot(1000, loop.quit)
             loop.exec()
@@ -199,7 +209,7 @@ class Task(QObject):
         self._finished(Status.FAILURE, error.get("details"))
 
     def _destroyed_handler(self, _dict):
-        if hasattr(self, "worker_thread") and isValid(self.worker_thread):
+        if self.worker_thread and isValid(self.worker_thread):
             if self.worker_thread.isRunning():
                 self.worker_thread.quit()
                 self.worker_thread.wait()

@@ -39,8 +39,6 @@ class PecAndDownloadEmlWorker(TaskWorker):
             self.sentpec.emit()
 
         except Exception as e:
-            print("#################")
-            print(str(e))
             self.error.emit(
                 {
                     "title": self.translations["LOGIN_FAILED"],
@@ -96,7 +94,7 @@ class TaskPecAndDownloadEml(Task):
                 "status": self.status,
             },
         ]
-    
+
     @Task.options.getter
     def options(self):
         return self._options
@@ -112,10 +110,8 @@ class TaskPecAndDownloadEml(Task):
         options["type"] = acquisition_type
         self._options = options
 
-
     def start(self):
         super().start_task(self.translations["PEC_AND_DOWNLOAD_EML_STARTED"])
-
 
     def __on_pec_sent(self):
         sub_task_sent_pec = next(
@@ -144,7 +140,6 @@ class TaskPecAndDownloadEml(Task):
 
         self.worker.download_eml()
 
-
     def __on_eml_downloaded(self):
         sub_task_download_eml = next(
             (
@@ -157,7 +152,7 @@ class TaskPecAndDownloadEml(Task):
         if sub_task_download_eml:
             sub_task_download_eml["state"] = State.COMPLETED
             sub_task_download_eml["status"] = Status.SUCCESS
-        
+
         message = self.translations["EML_DOWNLOAD"].format(Status.SUCCESS.name)
 
         super()._finished(message=message)
