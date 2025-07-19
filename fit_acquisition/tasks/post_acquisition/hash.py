@@ -31,7 +31,11 @@ class HashWorker(TaskWorker):
     def start(self):
         self.started.emit()
 
-        files = [f.name for f in os.scandir(self.options["acquisition_directory"]) if f.is_file()]
+        files = [
+            f.name
+            for f in os.scandir(self.options["acquisition_directory"])
+            if f.is_file()
+        ]
         self.options["exclude_list"].append("acquisition.hash")
         self.options["exclude_list"].append("acquisition.log")
         for file in files:
@@ -64,7 +68,7 @@ class TaskHash(Task):
             label="HASHFILE",
             worker_class=HashWorker,
         )
-    
+
     @Task.options.getter
     def options(self):
         return self._options
@@ -72,17 +76,17 @@ class TaskHash(Task):
     @options.setter
     def options(self, options):
         options["exclude_list"] = list()
-        if "exclude_from_hash_calculation" in options:
+        if "exclude_from_hash_calculation" in options and isinstance(
+            options["exclude_from_hash_calculation"], list
+        ):
             options["exclude_list"] = options["exclude_from_hash_calculation"]
 
         self._options = options
-    
+
     def start(self):
         super().start_task(self.translations["CALCULATE_HASHFILE_STARTED"])
-    
+
     def _finished(self, status=Status.SUCCESS, details=""):
-        message = self.translations["CALCULATE_HASHFILE_COMPLETED"].format(
-                status.name
-        )
+        message = self.translations["CALCULATE_HASHFILE_COMPLETED"].format(status.name)
 
         super()._finished(status, details, message)

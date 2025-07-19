@@ -31,19 +31,15 @@ class ClassNames:
         }
 
     def register(self, name: str, value: str):
-        """Registra una nuova costante a runtime."""
         self._names[name] = value
 
     def get(self, name: str) -> str:
-        """Restituisce il valore della costante, se esiste."""
         return self._names.get(name)
 
     def list_all(self) -> dict:
-        """Restituisce tutte le costanti registrate."""
         return dict(self._names)
 
     def __getattr__(self, name: str) -> str:
-        """Permette l'accesso come attributo: class_names.WHATSAPP."""
         try:
             return self._names[name]
         except KeyError:
@@ -53,5 +49,4 @@ class ClassNames:
         return name in self._names
 
 
-# Istanza singleton da importare ovunque
 class_names = ClassNames()
