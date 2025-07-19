@@ -11,7 +11,7 @@ import os
 
 from PySide6.QtCore import QObject, Signal
 
-from fit_acquisition.class_names import *
+from fit_acquisition.class_names import class_names
 from fit_acquisition.tasks.tasks_handler import TasksHandler
 
 
@@ -28,7 +28,7 @@ class PostAcquisition(QObject):
         self.__save_case_info()
 
     def __save_case_info(self):
-        task = self.task_handler.get_task(SAVE_CASE_INFO)
+        task = self.task_handler.get_task(class_names.SAVE_CASE_INFO)
         if task:
             task.finished.connect(self.__zip_and_remove)
             task.options = self.options
@@ -54,7 +54,7 @@ class PostAcquisition(QObject):
         elif self.options.get("type") == "video":
             self.options["acquisition_content_directory"] = self.options.get("url_dir")
 
-        task = self.task_handler.get_task(ZIP_AND_REMOVE_FOLDER)
+        task = self.task_handler.get_task(class_names.ZIP_AND_REMOVE_FOLDER)
         if task:
             task.finished.connect(self.__calculate_acquisition_file_hash)
             task.options = self.options
@@ -62,7 +62,7 @@ class PostAcquisition(QObject):
             task.start()
 
     def __calculate_acquisition_file_hash(self):
-        task = self.task_handler.get_task(HASH)
+        task = self.task_handler.get_task(class_names.HASH)
         if task:
             task.finished.connect(self.__generate_pdf_report)
             task.options = self.options
@@ -70,7 +70,7 @@ class PostAcquisition(QObject):
             task.start()
 
     def __generate_pdf_report(self):
-        task = self.task_handler.get_task(REPORT)
+        task = self.task_handler.get_task(class_names.REPORT)
         if (
             self.options.get("type") == "web"
             or self.options.get("type") == "entire_website"
@@ -89,7 +89,7 @@ class PostAcquisition(QObject):
             task.start()
 
     def __generate_timestamp_report(self):
-        task = self.task_handler.get_task(TIMESTAMP)
+        task = self.task_handler.get_task(class_names.TIMESTAMP)
         if task:
             task.finished.connect(self.__send_pec_and_download_eml)
             task.options = self.options
@@ -99,7 +99,7 @@ class PostAcquisition(QObject):
             task.finished.connect(self.finished.emit)
 
     def __send_pec_and_download_eml(self):
-        task = self.task_handler.get_task(PEC_AND_DOWNLOAD_EML)
+        task = self.task_handler.get_task(class_names.PEC_AND_DOWNLOAD_EML)
         if task:
             task.finished.connect(self.finished.emit)
             task.options = self.options

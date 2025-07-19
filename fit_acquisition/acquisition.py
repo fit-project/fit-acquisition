@@ -18,7 +18,7 @@ from fit_configurations.controller.tabs.network.network_check import (
 from PySide6.QtCore import QObject, Signal
 from shiboken6 import isValid
 
-from fit_acquisition.class_names import *
+from fit_acquisition.class_names import class_names
 from fit_acquisition.lang import load_translations
 from fit_acquisition.logger import LogConfigTools
 from fit_acquisition.post import PostAcquisition
@@ -76,12 +76,12 @@ class Acquisition(QObject):
         self._stop_emitted = False
 
         self.__post_tasks = (
-            ZIP_AND_REMOVE_FOLDER,
-            SAVE_CASE_INFO,
-            HASH,
-            REPORT,
-            TIMESTAMP,
-            PEC_AND_DOWNLOAD_EML,
+            class_names.ZIP_AND_REMOVE_FOLDER,
+            class_names.SAVE_CASE_INFO,
+            class_names.HASH,
+            class_names.REPORT,
+            class_names.TIMESTAMP,
+            class_names.PEC_AND_DOWNLOAD_EML,
         )
 
         self.post_acquisition = PostAcquisition()

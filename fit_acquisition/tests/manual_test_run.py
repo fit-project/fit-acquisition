@@ -11,7 +11,7 @@ from PySide6 import QtCore, QtWidgets
 from PySide6.QtCore import Qt
 
 from fit_acquisition.acquisition import Acquisition
-from fit_acquisition.class_names import *
+from fit_acquisition.class_names import class_names
 from fit_acquisition.lang import load_translations
 from fit_acquisition.tasks.tasks_info import TasksInfo
 
@@ -87,16 +87,16 @@ if __name__ == "__main__":
     logger = logging.getLogger("view.scrapers.web.web")
     acquisition = Acquisition(logger=logger)
 
-    acquisition.start_tasks = [SCREENRECORDER, PACKETCAPTURE]
+    acquisition.start_tasks = [class_names.SCREENRECORDER, class_names.PACKETCAPTURE]
     acquisition.stop_tasks = [
-        WHOIS,
-        NSLOOKUP,
-        HEADERS,
-        SSLKEYLOG,
-        SSLCERTIFICATE,
-        TRACEROUTE,
-        SCREENRECORDER,
-        PACKETCAPTURE,
+        class_names.WHOIS,
+        class_names.NSLOOKUP,
+        class_names.HEADERS,
+        class_names.SSLKEYLOG,
+        class_names.SSLCERTIFICATE,
+        class_names.TRACEROUTE,
+        class_names.SCREENRECORDER,
+        class_names.PACKETCAPTURE,
     ]
 
     # UI

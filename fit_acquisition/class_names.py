@@ -7,34 +7,51 @@
 # -----
 ######
 
-PACKETCAPTURE = "TaskPacketCapture"
-SCREENRECORDER = "TaskScreenRecorder"
-# NETWORK TOOLS TASKS
-NSLOOKUP = "TaskNslookup"
-WHOIS = "TaskWhois"
-HEADERS = "TaskHeaders"
-TRACEROUTE = "TaskTraceroute"
-SSLKEYLOG = "TaskSSLKeyLog"
-SSLCERTIFICATE = "TaskSSLCertificate"
-# POST ACQUISITION TASKS
-HASH = "TaskHash"
-REPORT = "TaskReport"
-TIMESTAMP = "TaskTimestamp"
-PEC_AND_DOWNLOAD_EML = "TaskPecAndDownloadEml"
-ZIP_AND_REMOVE_FOLDER = "TaskZipAndRemoveFolder"
-SAVE_CASE_INFO = "TaskSaveCaseInfo"
-# WEB TASKS
-TAKE_FULL_PAGE_SCREENSHOT = "TaskTakeFullPageScreenShot"
-SAVE_PAGE = "TaskSavePage"
 
-# MAIL SCRAPER
-MAIL = "TaskMail"
+class ClassNames:
+    def __init__(self):
+        self._names = {
+            # ACQUISITION TASKS
+            "PACKETCAPTURE": "TaskPacketCapture",
+            "SCREENRECORDER": "TaskScreenRecorder",
+            # NETWORK TOOLS TASKS
+            "NSLOOKUP": "TaskNslookup",
+            "WHOIS": "TaskWhois",
+            "HEADERS": "TaskHeaders",
+            "TRACEROUTE": "TaskTraceroute",
+            "SSLKEYLOG": "TaskSSLKeyLog",
+            "SSLCERTIFICATE": "TaskSSLCertificate",
+            # POST ACQUISITION TASKS
+            "HASH": "TaskHash",
+            "REPORT": "TaskReport",
+            "TIMESTAMP": "TaskTimestamp",
+            "PEC_AND_DOWNLOAD_EML": "TaskPecAndDownloadEml",
+            "ZIP_AND_REMOVE_FOLDER": "TaskZipAndRemoveFolder",
+            "SAVE_CASE_INFO": "TaskSaveCaseInfo",
+        }
 
-# INSTAGRAM SCRAPER
-INSTAGRAM = "TaskInstagram"
+    def register(self, name: str, value: str):
+        """Registra una nuova costante a runtime."""
+        self._names[name] = value
 
-# VIDEO SCRAPER
-VIDEO = "TaskVideo"
+    def get(self, name: str) -> str:
+        """Restituisce il valore della costante, se esiste."""
+        return self._names.get(name)
 
-# ENTIRE WEBSITE SCRAPER
-ENTIRE_WEBSITE = "TaskEntireWebsite"
+    def list_all(self) -> dict:
+        """Restituisce tutte le costanti registrate."""
+        return dict(self._names)
+
+    def __getattr__(self, name: str) -> str:
+        """Permette l'accesso come attributo: class_names.WHATSAPP."""
+        try:
+            return self._names[name]
+        except KeyError:
+            raise AttributeError(f"'ClassNames' object has no attribute '{name}'")
+
+    def __contains__(self, name: str) -> bool:
+        return name in self._names
+
+
+# Istanza singleton da importare ovunque
+class_names = ClassNames()

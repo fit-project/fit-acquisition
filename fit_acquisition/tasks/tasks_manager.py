@@ -25,7 +25,7 @@ from fit_configurations.controller.tabs.screen_recorder.screen_recorder import (
 from fit_configurations.controller.tabs.timestamp.timestamp import TimestampController
 from PySide6.QtCore import QObject, Signal
 
-from fit_acquisition import class_names
+from fit_acquisition.class_names import class_names
 from fit_acquisition.tasks.tasks_handler import TasksHandler
 
 
