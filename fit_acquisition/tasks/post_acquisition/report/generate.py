@@ -364,7 +364,7 @@ class GenerateReport:
         return not os.path.isfile(path) or os.path.getsize(path) == 0
 
     def _zip_files_enum(self):
-        zip_enum = None
+        zip_enum = ""
         zip_dir = None
         # getting zip folder and passing file names and dimensions to the template
         for fname in os.listdir(self.cases_folder_path):
@@ -381,10 +381,8 @@ class GenerateReport:
                 else:
                     pass
                 if size > 0:
-                    zip_enum += "<p>" + filename + "</p>"
-                    zip_enum += (
-                        "<p>" + self.translations["SIZE"] + str(size) + " bytes</p>"
-                    )
+                    zip_enum += f'<p style="word-break: break-all;">{filename}</p>'
+                    zip_enum += f"<p>{self.translations['SIZE']}: {size} bytes</p>"
                     zip_enum += "<hr>"
         return zip_enum
 
