@@ -22,24 +22,24 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("Manual Acquisition Test")
         self.setGeometry(100, 100, 800, 600)
 
+        self.acquisition = acquisition
+        self.tasks_info = None
+
         # === Central widget
         central = QtWidgets.QWidget()
         self.setCentralWidget(central)
         layout = QtWidgets.QVBoxLayout(central)
 
-        self.progress = QtWidgets.QProgressBar()
-        self.status_bar = QtWidgets.QStatusBar()
-        self.setStatusBar(self.status_bar)
+        self.acquisition.progress_bar = QtWidgets.QProgressBar()
+        self.acquisition.status_bar = QtWidgets.QLabel()
 
         self.start_btn = QtWidgets.QPushButton("Start")
         self.stop_btn = QtWidgets.QPushButton("Stop")
 
-        layout.addWidget(self.progress)
+        layout.addWidget(self.acquisition.progress_bar)
         layout.addWidget(self.start_btn)
         layout.addWidget(self.stop_btn)
-
-        self.acquisition = acquisition
-        self.tasks_info = None
+        layout.addWidget(self.acquisition.status_bar)
 
         # Lo ridimensioniamo dinamicamente
         self.resizeEvent = self.on_resize
@@ -137,8 +137,6 @@ if __name__ == "__main__":
     for t in acquisition.tasks_manager.get_tasks():
         print(f"- {t.label} ({t.__class__.__name__})")
 
-    window.acquisition.__progress_bar = window.progress
-    window.acquisition.__status_bar = window.statusBar()
     window.show()
 
     sys.exit(app.exec())

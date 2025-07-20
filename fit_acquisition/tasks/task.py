@@ -187,6 +187,7 @@ class Task(QObject):
     def _started(self, details=""):
         self.__start_time = datetime.now()
         self.__end_time = None
+        self.update_progress_bar()
         self.update_task(State.STARTED, Status.SUCCESS, details)
         self.started.emit()
 
