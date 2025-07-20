@@ -169,6 +169,8 @@ class Acquisition(QObject):
             if isValid(task):
                 task.deleteLater()
         self.tasks_manager.clear_tasks()
+        self._start_emitted = False
+        self._stop_emitted = False
 
     def run_start_tasks(self):
         tasks = self.tasks_manager.get_tasks_from_class_name(self.start_tasks)
