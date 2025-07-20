@@ -320,6 +320,9 @@ class GenerateReport:
         except FileNotFoundError:
             return None
 
+    def __force_wrap(self, text, every=80):
+        return "\n".join(text[i : i + every] for i in range(0, len(text), every))
+
     def _acquisition_files_names(self):
         acquisition_files = {}
         files = [f.name for f in os.scandir(self.cases_folder_path) if f.is_file()]
@@ -381,8 +384,10 @@ class GenerateReport:
                 else:
                     pass
                 if size > 0:
-                    zip_enum += f'<p style="word-break: break-all;">{filename}</p>'
-                    zip_enum += f"<p>{self.translations['SIZE']}: {size} bytes</p>"
+                    zip_enum += "<p>" + self.__force_wrap(filename, 78) + "</p>"
+                    zip_enum += (
+                        "<p>" + self.translations["SIZE"] + str(size) + " bytes</p>"
+                    )
                     zip_enum += "<hr>"
         return zip_enum
 
