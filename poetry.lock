@@ -375,7 +375,7 @@ test = ["pytest (>=6)"]
 
 [[package]]
 name = "fit-assets"
-version = "0.1.14"
+version = "0.1.15"
 description = "Assets (icons, images, resources) for the FIT project"
 optional = false
 python-versions = ">=3.9,<3.13"
@@ -390,11 +390,11 @@ PySide6 = "6.9.0"
 type = "git"
 url = "https://github.com/fit-project/fit-assets.git"
 reference = "main"
-resolved_reference = "ddba187a2d96d7bfbc671db78db01750ce31857e"
+resolved_reference = "7401955a08b66164f49342f9b53a54389c50b1c3"
 
 [[package]]
 name = "fit-cases"
-version = "1.0.7"
+version = "1.0.9"
 description = "Modulo di configurazione per il progetto FIT"
 optional = false
 python-versions = ">=3.9,<3.13"
@@ -414,7 +414,7 @@ sqlalchemy = "^2.0.40"
 type = "git"
 url = "https://github.com/fit-project/fit-cases.git"
 reference = "main"
-resolved_reference = "28eaa05af8503b9c95edf2688396b749e92e3da7"
+resolved_reference = "10eda5db1da6187665348aed2a23c488dc3964c6"
 
 [[package]]
 name = "fit-common"
@@ -458,7 +458,7 @@ sqlalchemy = "^2.0.40"
 type = "git"
 url = "https://github.com/fit-project/fit-configurations.git"
 reference = "main"
-resolved_reference = "fbd7c3c8725aa15b263d5008fd3a1c5218119724"
+resolved_reference = "5fbd4c974581326ab396539f42cf497bd6e7e937"
 
 [[package]]
 name = "greenlet"
