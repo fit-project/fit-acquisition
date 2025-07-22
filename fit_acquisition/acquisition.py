@@ -84,6 +84,8 @@ class Acquisition(QObject):
             class_names.PEC_AND_DOWNLOAD_EML,
         )
 
+        self.external_tasks = list()
+
         self.post_acquisition = PostAcquisition()
         self.post_acquisition.finished.connect(self.post_acquisition_finished.emit)
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
@@ -158,7 +160,12 @@ class Acquisition(QObject):
         self.log_confing.change_filehandlers_path(self.options["acquisition_directory"])
         logging.config.dictConfig(self.log_confing.config)
 
-        all_tasks = self.start_tasks + self.stop_tasks + list(self.__post_tasks)
+        all_tasks = (
+            self.start_tasks
+            + self.stop_tasks
+            + list(self.__post_tasks)
+            + self.external_tasks
+        )
 
         self.tasks_manager.init_tasks(
             all_tasks, self.logger, self.__progress_bar, self.__status_bar
