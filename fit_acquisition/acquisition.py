@@ -8,6 +8,7 @@
 ######
 
 import logging.config
+from datetime import datetime, timezone
 from enum import Enum, auto
 
 from fit_common.core.utils import get_ntp_date_and_time
@@ -233,27 +234,33 @@ class Acquisition(QObject):
         )
 
     def log_start_message(self):
-        self.logger.info(self.translations["ACQUISITION_STARTED"])
-        self.logger.info(
-            self.translations["NTP_ACQUISITION_TIME"].format("start", self.get_time())
-        )
+        self.__log_message("ACQUISITION_STARTED")
 
     def log_stop_message(self):
-        self.logger.info(self.translations["ACQUISITION_STOPPED"])
-        self.logger.info(
-            self.translations["NTP_ACQUISITION_TIME"].format("stop", self.get_time())
-        )
+        self.__log_message("ACQUISITION_STOPPED")
 
     def log_end_message(self):
-        self.logger.info(self.translations["ACQUISITION_FINISHED"])
-        self.logger.info(
-            self.translations["NTP_ACQUISITION_TIME"].format("stop", self.get_time())
-        )
+        self.__log_message("ACQUISITION_FINISHED")
+
+    def __log_message(self, message_type):
+        time_info = self.get_time()
+        message = self.translations[message_type]
+
+        if time_info["server"] is not None:
+            message += f" {self.translations['NTP_TIME']} {time_info['datetime']} (server: {time_info['server']})"
+        else:
+            message += f" {self.translations['OS_TIME']} {time_info['datetime']}"
+
+        self.logger.info(message)
 
     def get_time(self):
-        return get_ntp_date_and_time(
-            NetworkCheckController().configuration["ntp_server"]
-        )
+        ntp_server = NetworkCheckController().configuration["ntp_server"]
+        ntp_time = get_ntp_date_and_time(ntp_server)
+
+        if ntp_time:
+            return {"datetime": ntp_time, "server": ntp_server}
+        else:
+            return {"datetime": datetime.now(timezone.utc), "server": None}
 
     def calculate_increment(self):
         return 100 / len(self.tasks_manager.get_tasks())
