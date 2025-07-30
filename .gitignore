@@ -179,3 +179,4 @@ pyrightconfig.json
 *.db
 .DS_Store
 acquisition/
+FIT/
