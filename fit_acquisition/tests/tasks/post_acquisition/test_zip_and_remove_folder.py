@@ -12,7 +12,7 @@ import logging.config
 import os
 
 import pytest
-from fit_common.core.utils import resolve_path
+from fit_common.core import resolve_path
 from fit_common.gui.utils import State, Status
 from fit_configurations.logger import LogConfigTools
 from PySide6.QtWidgets import QMainWindow
@@ -29,8 +29,12 @@ logger = logging.getLogger("view.scrapers.web.web")
 
 @pytest.fixture(scope="module")
 def acquisition_files():
-    acquisition_directory = resolve_path("acquisition/tasks/zip_and_remove_folder_test_folder")
-    acquisition_content_directory = os.path.join(acquisition_directory, "acquisition_content")
+    acquisition_directory = resolve_path(
+        "acquisition/tasks/zip_and_remove_folder_test_folder"
+    )
+    acquisition_content_directory = os.path.join(
+        acquisition_directory, "acquisition_content"
+    )
     downloads = os.path.join(acquisition_directory, "downloads")
 
     os.makedirs(acquisition_content_directory, exist_ok=True)
@@ -89,8 +93,10 @@ def task_instance(main_window, acquisition_files):
     )
 
     task.options = {
-            "acquisition_directory": acquisition_files["acquisition_directory"],
-            "acquisition_content_directory": acquisition_files["acquisition_content_directory"],
+        "acquisition_directory": acquisition_files["acquisition_directory"],
+        "acquisition_content_directory": acquisition_files[
+            "acquisition_content_directory"
+        ],
     }
 
     return task, ui
@@ -108,18 +114,22 @@ def test_init_zip_and_remove_folder_task(task_instance):
 def test_zip_and_remove_folder_task(task_instance, qtbot, acquisition_files):
     task, ui = task_instance
 
-
     with qtbot.waitSignal(task.finished, timeout=10000):
         task.start()
         task.increment = 100
 
     assert task.state == State.COMPLETED
     assert task.status == Status.SUCCESS
-    assert ui.statusbar.currentMessage() == translations["ZIP_AND_REMOVE_FOLDER_COMPLETED"].format(Status.SUCCESS.name)
+    assert ui.statusbar.currentMessage() == translations[
+        "ZIP_AND_REMOVE_FOLDER_COMPLETED"
+    ].format(Status.SUCCESS.name)
     assert task.progress_bar.value() == 100
 
-
-
-
-    assert os.path.exists(os.path.join(acquisition_files["acquisition_directory"], "acquisition_content.zip"))
-    assert os.path.exists(os.path.join(acquisition_files["acquisition_directory"], "downloads.zip"))
+    assert os.path.exists(
+        os.path.join(
+            acquisition_files["acquisition_directory"], "acquisition_content.zip"
+        )
+    )
+    assert os.path.exists(
+        os.path.join(acquisition_files["acquisition_directory"], "downloads.zip")
+    )

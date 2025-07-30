@@ -12,7 +12,7 @@ import os
 import zipfile
 from importlib.resources import files
 
-from fit_common.core.utils import get_version
+from fit_common.core import get_version
 from fit_configurations.controller.tabs.general.legal_proceeding_type import (
     LegalProceedingTypeController,
 )

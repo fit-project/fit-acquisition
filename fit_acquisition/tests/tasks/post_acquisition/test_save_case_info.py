@@ -12,7 +12,7 @@ import logging.config
 import os
 
 import pytest
-from fit_common.core.utils import resolve_path
+from fit_common.core import resolve_path
 from fit_common.gui.utils import State, Status
 from fit_configurations.logger import LogConfigTools
 from PySide6.QtWidgets import QMainWindow
@@ -59,19 +59,19 @@ def task_instance(main_window, test_folder):
     )
 
     case_info = {
-            "id": 1,
-            "name": "Go out",
-            "lawyer_name": "",
-            "operator": "",
-            "proceeding_type": 1,
-            "courthouse": "",
-            "proceeding_number": "",
-            "notes": "",
-            "logo_bin": "",
-            "logo": "",
-            "logo_height": "",
-            "logo_width": "",
-        }
+        "id": 1,
+        "name": "Go out",
+        "lawyer_name": "",
+        "operator": "",
+        "proceeding_type": 1,
+        "courthouse": "",
+        "proceeding_number": "",
+        "notes": "",
+        "logo_bin": "",
+        "logo": "",
+        "logo_height": "",
+        "logo_width": "",
+    }
 
     task.options = {
         "acquisition_directory": test_folder,
@@ -92,14 +92,16 @@ def test_init_save_case_info_task(task_instance):
 
 def test_save_case_info_task(task_instance, qtbot, test_folder):
     task, ui = task_instance
-    
+
     with qtbot.waitSignal(task.finished, timeout=3000):
         task.start()
         task.increment = 100
 
     assert task.state == State.COMPLETED
     assert task.status == Status.SUCCESS
-    assert ui.statusbar.currentMessage() == translations["SAVE_CASE_INFO_COMPLETED"].format(task.status.name)
+    assert ui.statusbar.currentMessage() == translations[
+        "SAVE_CASE_INFO_COMPLETED"
+    ].format(task.status.name)
     assert task.progress_bar.value() == 100
 
     assert os.path.exists(os.path.join(test_folder, "caseinfo.json"))

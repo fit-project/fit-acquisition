@@ -403,8 +403,6 @@ files = []
 develop = false
 
 [package.dependencies]
-fit-assets = {git = "https://github.com/fit-project/fit-assets.git", rev = "main"}
-fit-common = {git = "https://github.com/fit-project/fit-common.git", rev = "main"}
 fit-configurations = {git = "https://github.com/fit-project/fit-configurations.git", rev = "main"}
 pillow = "10.2.0"
 PySide6 = "6.9.0"
@@ -414,7 +412,7 @@ sqlalchemy = "^2.0.40"
 type = "git"
 url = "https://github.com/fit-project/fit-cases.git"
 reference = "main"
-resolved_reference = "10eda5db1da6187665348aed2a23c488dc3964c6"
+resolved_reference = "c2e6f2871c5ead7c871c2ebf5d8109fd56f3bdc1"
 
 [[package]]
 name = "fit-common"
@@ -430,13 +428,14 @@ develop = false
 ntplib = "^0.4.0"
 packaging = "^25.0"
 PySide6 = "6.9.0"
+requests = "^2.32.4"
 windows-tools = {version = "^2.5.0", markers = "sys_platform == \"win32\""}
 
 [package.source]
 type = "git"
 url = "https://github.com/fit-project/fit-common.git"
 reference = "main"
-resolved_reference = "985a849146b4eb9cef59615d53f187884ccb6e2a"
+resolved_reference = "1fed6b46f23cf8543870c86fec2c6e65a1e9adbf"
 
 [[package]]
 name = "fit-configurations"
@@ -458,7 +457,7 @@ sqlalchemy = "^2.0.40"
 type = "git"
 url = "https://github.com/fit-project/fit-configurations.git"
 reference = "main"
-resolved_reference = "5fbd4c974581326ab396539f42cf497bd6e7e937"
+resolved_reference = "1c48e5ccce5e419196b847a53c26eeb96b7c78cc"
 
 [[package]]
 name = "greenlet"
@@ -2220,4 +2219,4 @@ test = ["coverage (>=5.3)", "tomli (>=2.0.1) ; python_version < \"3.11\"", "tox"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.13"
-content-hash = "010fc240fa38cd378e499e6121f62767efbe1fadaf2976d7a8cfae810120d25b"
+content-hash = "06b86ac8dd692d89353d3b155d5552955c7af3ae1d47eefac566e0c6e4f20dda"

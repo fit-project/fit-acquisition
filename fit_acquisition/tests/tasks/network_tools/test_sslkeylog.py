@@ -12,7 +12,7 @@ import logging.config
 import os
 
 import pytest
-from fit_common.core.utils import resolve_path
+from fit_common.core import resolve_path
 from fit_common.gui.utils import State, Status
 from fit_configurations.logger import LogConfigTools
 from PySide6.QtWidgets import QMainWindow
@@ -80,10 +80,10 @@ def test_sslkeylog_task(task_instance, qtbot, test_folder):
 
     assert task.state == State.COMPLETED
     assert task.status == Status.SUCCESS
-    assert ui.statusbar.currentMessage() == translations["SSLKEYLOG_COMPLETED"].format(task.status.name)
+    assert ui.statusbar.currentMessage() == translations["SSLKEYLOG_COMPLETED"].format(
+        task.status.name
+    )
     assert task.progress_bar.value() == 100
 
     expected_sslkeylogfile = os.path.join(test_folder, "sslkey.log")
     assert os.environ.get("SSLKEYLOGFILE") == expected_sslkeylogfile
-
-

@@ -12,7 +12,7 @@ import logging.config
 import os
 
 import pytest
-from fit_common.core.utils import resolve_path
+from fit_common.core import resolve_path
 from fit_common.gui.utils import State, Status
 from fit_configurations.logger import LogConfigTools
 from PySide6.QtWidgets import QMainWindow
@@ -36,11 +36,11 @@ def acquisition_files():
     with open(os.path.join(acquisition_directory, pdf_filename), "w") as f:
         f.write("This is not pdf file \n")
 
-
     return {
         "acquisition_directory": acquisition_directory,
-        "pdf_filename": pdf_filename
+        "pdf_filename": pdf_filename,
     }
+
 
 @pytest.fixture
 def main_window(qtbot):
@@ -88,20 +88,24 @@ def test_init_timestamp_task(task_instance):
 def test_timestamp_task(task_instance, qtbot, acquisition_files):
     task, ui = task_instance
 
-
     with qtbot.waitSignal(task.finished, timeout=10000):
         task.start()
         task.increment = 100
 
-    
     print("Task status:", task.status)
     print("Task details:", task.details)
     print("Status bar:", ui.statusbar.currentMessage())
 
     assert task.state == State.COMPLETED
     assert task.status == Status.SUCCESS
-    assert ui.statusbar.currentMessage() == translations["TIMESTAMP_APPLY"].format(Status.SUCCESS.name, task.options["pdf_filename"], task.options["server_name"])
+    assert ui.statusbar.currentMessage() == translations["TIMESTAMP_APPLY"].format(
+        Status.SUCCESS.name, task.options["pdf_filename"], task.options["server_name"]
+    )
     assert task.progress_bar.value() == 100
 
-    assert os.path.exists(os.path.join(acquisition_files["acquisition_directory"], "timestamp.tsr"))
-    assert os.path.exists(os.path.join(acquisition_files["acquisition_directory"], "tsa.crt"))
+    assert os.path.exists(
+        os.path.join(acquisition_files["acquisition_directory"], "timestamp.tsr")
+    )
+    assert os.path.exists(
+        os.path.join(acquisition_files["acquisition_directory"], "tsa.crt")
+    )

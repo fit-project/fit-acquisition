@@ -7,20 +7,19 @@
 # -----
 ######
 
-import os
 import logging
 import logging.config
+import os
+
 import pytest
-
-from PySide6.QtWidgets import QMainWindow
-
+from fit_common.core import resolve_path
 from fit_common.gui.utils import State, Status
-from fit_common.core.utils import resolve_path
+from fit_configurations.logger import LogConfigTools
+from PySide6.QtWidgets import QMainWindow
 
 from fit_acquisition.lang import load_translations
 from fit_acquisition.tasks.network_tools.headers import TaskHeaders
 from fit_acquisition.tests.tasks.tasks_ui import Ui_MainWindow
-from fit_configurations.logger import LogConfigTools
 
 translations = load_translations()
 logger = logging.getLogger("view.scrapers.web.web")
@@ -77,21 +76,20 @@ def test_headers_task(task_instance, qtbot):
 
     with qtbot.waitSignal(task.started, timeout=3000):
         task.start()
-    
+
     assert task.state == State.STARTED
     assert task.status == Status.SUCCESS
     assert task.details == ""
-    assert (
-        task.status_bar.currentMessage()
-        == translations["HEADERS_STARTED"]
-    )
+    assert task.status_bar.currentMessage() == translations["HEADERS_STARTED"]
     assert task.progress_bar.value() == 0
-    
+
     with qtbot.waitSignal(task.finished, timeout=3000):
         task.increment = 100
         pass
 
     assert task.state == State.COMPLETED
     assert task.status == Status.SUCCESS
-    assert ui.statusbar.currentMessage() == translations["HEADERS_GET_INFO_URL"].format(task.status.name, task.options["url"])
+    assert ui.statusbar.currentMessage() == translations["HEADERS_GET_INFO_URL"].format(
+        task.status.name, task.options["url"]
+    )
     assert task.progress_bar.value() == 100

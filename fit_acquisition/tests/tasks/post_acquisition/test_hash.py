@@ -12,7 +12,7 @@ import logging.config
 import os
 
 import pytest
-from fit_common.core.utils import resolve_path
+from fit_common.core import resolve_path
 from fit_common.gui.utils import State, Status
 from fit_configurations.logger import LogConfigTools
 from PySide6.QtWidgets import QMainWindow
@@ -73,14 +73,16 @@ def test_init_hash_task(task_instance):
 
 def test_hash_task(task_instance, qtbot, test_folder):
     task, ui = task_instance
-    
+
     with qtbot.waitSignal(task.finished, timeout=3000):
         task.start()
         task.increment = 100
 
     assert task.state == State.COMPLETED
     assert task.status == Status.SUCCESS
-    assert ui.statusbar.currentMessage() == translations["CALCULATE_HASHFILE_COMPLETED"].format(task.status.name)
+    assert ui.statusbar.currentMessage() == translations[
+        "CALCULATE_HASHFILE_COMPLETED"
+    ].format(task.status.name)
     assert task.progress_bar.value() == 100
 
     assert os.path.exists(os.path.join(test_folder, "acquisition.hash"))

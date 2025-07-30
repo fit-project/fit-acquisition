@@ -7,20 +7,20 @@
 # -----
 ######
 
-import os
 import glob
 import logging
 import logging.config
-import pytest
+import os
 
-from PySide6.QtWidgets import QMainWindow
+import pytest
+from fit_common.core import resolve_path
 from fit_common.gui.utils import State, Status
-from fit_common.core.utils import resolve_path
+from fit_configurations.logger import LogConfigTools
+from PySide6.QtWidgets import QMainWindow
 
 from fit_acquisition.lang import load_translations
 from fit_acquisition.tasks.infinite_loop.screen_recorder import TaskScreenRecorder
 from fit_acquisition.tests.tasks.tasks_ui import Ui_MainWindow
-from fit_configurations.logger import LogConfigTools
 
 translations = load_translations()
 logger = logging.getLogger("view.scrapers.web.web")
@@ -95,7 +95,9 @@ def test_screen_recorder_task(task_instance, test_folder, qtbot):
     assert task.state == State.COMPLETED
     assert task.status == Status.SUCCESS
     assert task.details == translations["NETWORK_PACKET_CAPTURE_COMPLETED_DETAILS"]
-    assert ui.statusbar.currentMessage() == translations["SCREEN_RECORDER_COMPLETED"].format(task.status.name)
+    assert ui.statusbar.currentMessage() == translations[
+        "SCREEN_RECORDER_COMPLETED"
+    ].format(task.status.name)
     assert task.progress_bar.value() == 100
 
     # Verifica che sia stato creato almeno un file (video o audio + video)

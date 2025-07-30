@@ -12,7 +12,7 @@ import logging.config
 import os
 
 import pytest
-from fit_common.core.utils import resolve_path
+from fit_common.core import resolve_path
 from fit_common.gui.utils import State, Status
 from fit_configurations.logger import LogConfigTools
 from PySide6.QtWidgets import QMainWindow
@@ -76,23 +76,22 @@ def test_whois_task(task_instance, qtbot, test_folder):
 
     with qtbot.waitSignal(task.started, timeout=3000):
         task.start()
-    
+
     assert task.state == State.STARTED
     assert task.status == Status.SUCCESS
     assert task.details == ""
-    assert (
-        task.status_bar.currentMessage()
-        == translations["WHOIS_STARTED"]
-    )
+    assert task.status_bar.currentMessage() == translations["WHOIS_STARTED"]
     assert task.progress_bar.value() == 0
-    
+
     with qtbot.waitSignal(task.finished, timeout=10000):
         task.increment = 100
         pass
 
     assert task.state == State.COMPLETED
     assert task.status == Status.SUCCESS
-    assert ui.statusbar.currentMessage() == translations["WHOIS_GET_INFO_URL"].format(task.status.name, task.options["url"])
+    assert ui.statusbar.currentMessage() == translations["WHOIS_GET_INFO_URL"].format(
+        task.status.name, task.options["url"]
+    )
     assert task.progress_bar.value() == 100
 
     assert os.path.exists(os.path.join(test_folder, "whois.txt"))

@@ -8,7 +8,7 @@
 ######
 
 
-from fit_common.core.utils import get_ntp_date_and_time
+from fit_common.core import get_ntp_date_and_time
 from fit_common.gui.utils import Status
 from fit_configurations.controller.tabs.network.network_check import (
     NetworkCheckController,

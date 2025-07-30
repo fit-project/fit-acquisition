@@ -5,7 +5,7 @@ import logging.config
 import os
 import sys
 
-from fit_common.core.utils import resolve_path
+from fit_common.core import resolve_path
 from fit_configurations.logger import LogConfigTools
 from PySide6 import QtCore, QtWidgets
 from PySide6.QtCore import Qt
