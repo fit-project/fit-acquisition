@@ -23,7 +23,7 @@ from fit_acquisition.tasks.infinite_loop.screen_recorder import TaskScreenRecord
 from fit_acquisition.tests.tasks.tasks_ui import Ui_MainWindow
 
 translations = load_translations()
-logger = logging.getLogger("view.scrapers.web.web")
+logger = logging.getLogger("scraper.web")
 
 
 @pytest.fixture(scope="module")

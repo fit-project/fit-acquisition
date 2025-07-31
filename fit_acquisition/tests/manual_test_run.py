@@ -84,7 +84,7 @@ if __name__ == "__main__":
     logging.config.dictConfig(log_tools.config)
 
     # Setup Acquisition
-    logger = logging.getLogger("view.scrapers.web.web")
+    logger = logging.getLogger("scraper.web")
     acquisition = Acquisition(logger=logger)
 
     acquisition.start_tasks = [class_names.SCREENRECORDER, class_names.PACKETCAPTURE]

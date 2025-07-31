@@ -24,7 +24,7 @@ from fit_acquisition.tasks.post_acquisition.zip_and_remove_folder import (
 from fit_acquisition.tests.tasks.tasks_ui import Ui_MainWindow
 
 translations = load_translations()
-logger = logging.getLogger("view.scrapers.web.web")
+logger = logging.getLogger("scraper.web")
 
 
 @pytest.fixture(scope="module")

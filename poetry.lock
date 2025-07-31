@@ -435,7 +435,7 @@ windows-tools = {version = "^2.5.0", markers = "sys_platform == \"win32\""}
 type = "git"
 url = "https://github.com/fit-project/fit-common.git"
 reference = "main"
-resolved_reference = "54b6e039709589678fd0c36aed3c10ea9ee684ec"
+resolved_reference = "a02e590417d24752171d7204da18435487cd5f88"
 
 [[package]]
 name = "fit-configurations"

@@ -25,7 +25,7 @@ from fit_acquisition.tasks.post_acquisition.pec.pec_and_download_eml import (
 from fit_acquisition.tests.tasks.tasks_ui import Ui_MainWindow
 
 translations = load_translations()
-logger = logging.getLogger("view.scrapers.web.web")
+logger = logging.getLogger("scraper.web")
 
 
 @pytest.fixture(scope="module")

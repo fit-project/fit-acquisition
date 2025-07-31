@@ -155,7 +155,7 @@ class Acquisition(QObject):
     def load_tasks(self):
         self.log_confing = LogConfigTools()
 
-        if self.logger.name == "view.scrapers.web.web":
+        if self.logger.name == "scraper.web":
             self.log_confing.set_dynamic_loggers()
 
         self.log_confing.change_filehandlers_path(self.options["acquisition_directory"])

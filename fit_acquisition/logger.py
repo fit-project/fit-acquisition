@@ -57,23 +57,23 @@ class LogConfigTools:
                 },
             },
             "loggers": {
-                "view.scrapers.web.web": {
+                "scraper.web": {
                     "handlers": ["facquisition"],
                     "level": "INFO",
                 },
-                "view.scrapers.mail.mail": {
+                "scraper.mail": {
                     "handlers": ["facquisition"],
                     "level": "INFO",
                 },
-                "view.scrapers.instagram.instagram": {
+                "scraper.instagram": {
                     "handlers": ["facquisition"],
                     "level": "INFO",
                 },
-                "view.scrapers.video.video": {
+                "scraper.video": {
                     "handlers": ["facquisition"],
                     "level": "INFO",
                 },
-                "view.scrapers.entire_website.entire_website": {
+                "scraper.entire_website": {
                     "handlers": ["facquisition"],
                     "level": "INFO",
                 },
