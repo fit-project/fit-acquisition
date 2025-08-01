@@ -10,6 +10,7 @@
 import os
 
 import requests
+from fit_common.core import debug, get_context, log_exception
 from fit_common.gui.utils import Status
 from fit_configurations.controller.tabs.timestamp.timestamp import TimestampController
 from rfc3161ng.api import RemoteTimestamper
@@ -24,11 +25,13 @@ class TimestampWorker(TaskWorker):
         self.started.emit()
 
         try:
-            pdf_path = os.path.join(self.options["acquisition_directory"], self.options["pdf_filename"])
-            ts_path = os.path.join(self.options["acquisition_directory"], "timestamp.tsr")
+            pdf_path = os.path.join(
+                self.options["acquisition_directory"], self.options["pdf_filename"]
+            )
+            ts_path = os.path.join(
+                self.options["acquisition_directory"], "timestamp.tsr"
+            )
             cert_path = os.path.join(self.options["acquisition_directory"], "tsa.crt")
-
-            
 
             # getting the chain from the authority
             response = requests.get(self.options["cert_url"], timeout=10)
@@ -40,42 +43,65 @@ class TimestampWorker(TaskWorker):
             with open(cert_path, "rb") as f:
                 certificate = f.read()
 
-             # create the object
+            # create the object
             rt = RemoteTimestamper(
                 self.options["server_name"], certificate=certificate, hashname="sha256"
             )
 
-             # file to be certificated
+            # file to be certificated
             with open(pdf_path, "rb") as f:
                 timestamp = rt.timestamp(data=f.read())
 
-           # saving the timestamp
+            # saving the timestamp
             with open(ts_path, "wb") as f:
                 f.write(timestamp)
 
             self.finished.emit()
 
         except requests.exceptions.RequestException as e:
-            self.error.emit({
-                "title": self.translations["TIMESTAMP_ERROR_TITLE"],
-                "message": self.translations["HTTP_CONNECTION_ERROR"],
-                "details": str(e),
-            })
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start timestap failed",
+                str(e),
+                context=get_context(self),
+            )
+            self.error.emit(
+                {
+                    "title": self.translations["TIMESTAMP_ERROR_TITLE"],
+                    "message": self.translations["HTTP_CONNECTION_ERROR"],
+                    "details": str(e),
+                }
+            )
 
         except (OSError, IOError) as e:
-            self.error.emit({
-                "title": self.translations["TIMESTAMP_ERROR_TITLE"],
-                "message": self.translations["FILE_WRITE_ERROR"],
-                "details": str(e),
-            })
-    
-        except Exception as e:
-            self.error.emit({
-                "title": self.translations["TIMESTAMP_ERROR_TITLE"],
-                "message": self.translations["TIMESTAMP_EXECUTION_ERROR"],
-                "details": str(e),
-            })
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start timestap failed",
+                str(e),
+                context=get_context(self),
+            )
+            self.error.emit(
+                {
+                    "title": self.translations["TIMESTAMP_ERROR_TITLE"],
+                    "message": self.translations["FILE_WRITE_ERROR"],
+                    "details": str(e),
+                }
+            )
 
+        except Exception as e:
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start timestap failed",
+                str(e),
+                context=get_context(self),
+            )
+            self.error.emit(
+                {
+                    "title": self.translations["TIMESTAMP_ERROR_TITLE"],
+                    "message": self.translations["TIMESTAMP_EXECUTION_ERROR"],
+                    "details": str(e),
+                }
+            )
 
 
 class TaskTimestamp(Task):
@@ -100,15 +126,15 @@ class TaskTimestamp(Task):
         options["acquisition_directory"] = folder
         options["pdf_filename"] = pdf_filename
         self._options = options
-    
+
     def start(self):
         super().start_task(self.translations["TIMESTAMP_STARTED"])
 
     def _finished(self, status=Status.SUCCESS, details=""):
         message = self.translations["TIMESTAMP_APPLY"].format(
-                status.name,
-                self.options["pdf_filename"],
-                self.options["server_name"],
-            )
+            status.name,
+            self.options["pdf_filename"],
+            self.options["server_name"],
+        )
 
         super()._finished(status, details, message)

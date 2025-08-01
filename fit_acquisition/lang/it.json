@@ -135,6 +135,8 @@
     "SAVE_CASE_INFO": "Salva informazioni del caso su file json",
     "SAVE_CASE_INFO_STARTED": "Salvataggio informazioni del caso su file json iniziata",
     "SAVE_CASE_INFO_COMPLETED": "{}: Salvataggio informazioni del caso su file json completata",
+    "SAVE_CASE_INFO_ERROR_TITLE": "Errore durante il salvataggio delle informazioni del caso",
+    "SAVE_CASE_INFO_EXECUTION_ERROR": "Si è verificato un errore durante il salvataggio delle informazioni del caso.\nMaggiori dettagli di seguito.",
     "TIMESTAMP": "Genera MARCA TEMPORALE per il report",
     "TIMESTAMP_STARTED": "Inizio calcolo marca temporale",
     "TIMESTAMP_COMPLETED": "Calcolo marca temporale  completato",

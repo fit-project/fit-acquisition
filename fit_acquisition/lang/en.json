@@ -135,6 +135,8 @@
     "SAVE_CASE_INFO": "Save case information on json file",
     "SAVE_CASE_INFO_STARTED": "Save case information started",
     "SAVE_CASE_INFO_COMPLETED":"{}: Save case information completed",
+    "SAVE_CASE_INFO_ERROR_TITLE": "Save Case Info Error",
+    "SAVE_CASE_INFO_EXECUTION_ERROR": "An error occurred while saving case information.\nMore details below.",
     "TIMESTAMP": "Generate TIMESTAMP for the report",
     "TIMESTAMP_STARTED": "TIMESTAMP started",
     "TIMESTAMP_COMPLETED": "TIMESTAMP completed",

@@ -7,7 +7,7 @@
 # -----
 ######
 
-
+from fit_common.core import debug, get_context, log_exception
 from fit_common.gui.utils import State, Status
 from fit_configurations.controller.tabs.pec.pec import PecController
 from PySide6.QtCore import QEventLoop, QTimer, Signal
@@ -39,6 +39,12 @@ class PecAndDownloadEmlWorker(TaskWorker):
             self.sentpec.emit()
 
         except Exception as e:
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start pec failed",
+                str(e),
+                context=get_context(self),
+            )
             self.error.emit(
                 {
                     "title": self.translations["LOGIN_FAILED"],
@@ -59,6 +65,12 @@ class PecAndDownloadEmlWorker(TaskWorker):
                     self.downloadedeml.emit()
                     break
             except Exception as e:
+                log_exception(e, context=get_context(self))
+                debug(
+                    "Start download eml failed",
+                    str(e),
+                    context=get_context(self),
+                )
                 self.error.emit(
                     {
                         "title": self.translations["LOGIN_FAILED"],

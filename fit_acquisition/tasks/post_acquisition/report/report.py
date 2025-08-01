@@ -8,7 +8,7 @@
 ######
 
 
-from fit_common.core import get_ntp_date_and_time
+from fit_common.core import debug, get_context, get_ntp_date_and_time, log_exception
 from fit_common.gui.utils import Status
 from fit_configurations.controller.tabs.network.network_check import (
     NetworkCheckController,
@@ -35,6 +35,12 @@ class ReportWorker(TaskWorker):
             )
             self.finished.emit()
         except Exception as e:
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start report failed",
+                str(e),
+                context=get_context(self),
+            )
             self.error.emit(
                 {
                     "title": self.translations["REPORTFILE"],
