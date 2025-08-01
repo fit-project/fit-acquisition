@@ -9,6 +9,7 @@
 
 import os
 
+from fit_common.core import debug, get_context, log_exception
 from fit_common.gui.multimedia import get_vb_cable_virtual_audio_device
 from fit_common.gui.utils import Status
 from fit_configurations.controller.tabs.screen_recorder.screen_recorder import (
@@ -60,11 +61,17 @@ class ScreenRecorderWorker(TaskWorker):
             self.__screen_to_record.setScreen(screen)
 
         if hasattr(app, "is_enabled_audio_recording"):
-            self.__is_enabled_audio_recording = getattr(app, "is_enabled_audio_recording")
+            self.__is_enabled_audio_recording = getattr(
+                app, "is_enabled_audio_recording"
+            )
 
         if self.__is_enabled_audio_recording:
-            self.__audio_path = os.path.join(self.__acquisition_directory, "screenrecorder/audio")
-            self.__video_path = os.path.join(self.__acquisition_directory, "screenrecorder/video")
+            self.__audio_path = os.path.join(
+                self.__acquisition_directory, "screenrecorder/audio"
+            )
+            self.__video_path = os.path.join(
+                self.__acquisition_directory, "screenrecorder/video"
+            )
             self.__create_screen_recorder_directories()
 
             self.__video_recorder.setOutputLocation(
@@ -90,11 +97,19 @@ class ScreenRecorderWorker(TaskWorker):
                 self.__audio_recorder.record()
             self.started.emit()
         except Exception as e:
-            self.error.emit({
-                "title": self.translations["SCREEN_RECORDER_ERROR_TITLE"],
-                "message": self.translations["SCREEN_RECORDER_ERROR_MSG"],
-                "details": str(e),
-            })
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start screen recorder failed",
+                str(e),
+                context=get_context(self),
+            )
+            self.error.emit(
+                {
+                    "title": self.translations["SCREEN_RECORDER_ERROR_TITLE"],
+                    "message": self.translations["SCREEN_RECORDER_ERROR_MSG"],
+                    "details": str(e),
+                }
+            )
 
     def stop(self):
         try:
@@ -103,11 +118,19 @@ class ScreenRecorderWorker(TaskWorker):
             if self.__is_enabled_audio_recording:
                 self.__audio_recorder.stop()
         except Exception as e:
-            self.error.emit({
-                "title": self.translations["SCREEN_RECORDER_ERROR_TITLE"],
-                "message": self.translations["SCREEN_RECORDER_ERROR_MSG"],
-                "details": str(e),
-            })
+            log_exception(e, context=get_context(self))
+            debug(
+                "Stop screen recorder failed",
+                str(e),
+                context=get_context(self),
+            )
+            self.error.emit(
+                {
+                    "title": self.translations["SCREEN_RECORDER_ERROR_TITLE"],
+                    "message": self.translations["SCREEN_RECORDER_ERROR_MSG"],
+                    "details": str(e),
+                }
+            )
 
     def __join_audio_and_video(self):
         try:
@@ -119,15 +142,25 @@ class ScreenRecorderWorker(TaskWorker):
                 video_path = self.__get_file_path(self.__video_path)
                 video = VideoFileClip(video_path)
                 audio = AudioFileClip(audio_path)
-                video.set_audio(audio).write_videofile(output_path, codec="libx264", audio_codec="aac")
+                video.set_audio(audio).write_videofile(
+                    output_path, codec="libx264", audio_codec="aac"
+                )
 
             self.finished.emit()
         except Exception as e:
-            self.error.emit({
-                "title": self.translations["SCREEN_RECORDER_ERROR_TITLE"],
-                "message": self.translations["SCREEN_RECORDER_ERROR_MSG"],
-                "details": str(e),
-            })
+            log_exception(e, context=get_context(self))
+            debug(
+                "Join audio and video failed",
+                str(e),
+                context=get_context(self),
+            )
+            self.error.emit(
+                {
+                    "title": self.translations["SCREEN_RECORDER_ERROR_TITLE"],
+                    "message": self.translations["SCREEN_RECORDER_ERROR_MSG"],
+                    "details": str(e),
+                }
+            )
 
     def __get_file_path(self, directory):
         for root, dirs, files in os.walk(directory):
@@ -144,13 +177,13 @@ class ScreenRecorderWorker(TaskWorker):
 class TaskScreenRecorder(Task):
     def __init__(self, logger, progress_bar=None, status_bar=None):
         super().__init__(
-            logger, 
+            logger,
             progress_bar,
-            status_bar, 
+            status_bar,
             label="SCREEN_RECORDER",
             is_infinite_loop=True,
-            worker_class=ScreenRecorderWorker
-            )
+            worker_class=ScreenRecorderWorker,
+        )
 
     @Task.options.setter
     def options(self, options):
@@ -162,16 +195,20 @@ class TaskScreenRecorder(Task):
 
     def start(self):
         super().start_task(self.translations["SCREEN_RECORDER_STARTED"])
-    
+
     def stop(self):
         super().stop_task(self.translations["SCREEN_RECORDER_STOPPED"])
 
     def _started(self):
         super()._started(self.translations["SCREEN_RECORDER_STARTED_DETAILS"])
-    
+
     def _finished(self, status=Status.SUCCESS, details=""):
 
         if status == Status.SUCCESS:
             details = self.translations["NETWORK_PACKET_CAPTURE_COMPLETED_DETAILS"]
 
-        super()._finished(status, details, self.translations["SCREEN_RECORDER_COMPLETED"].format(status.name))
+        super()._finished(
+            status,
+            details,
+            self.translations["SCREEN_RECORDER_COMPLETED"].format(status.name),
+        )
