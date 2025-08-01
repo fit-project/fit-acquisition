@@ -12,6 +12,7 @@ import socket
 import ssl
 from urllib.parse import urlparse
 
+from fit_common.core import debug, get_context, log_exception
 from fit_common.gui.utils import Status
 
 from fit_acquisition.tasks.task import Task
@@ -83,6 +84,12 @@ class SSLCertificateWorker(TaskWorker):
             self.finished.emit()
 
         except ValueError as e:
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start ssl certificate failed",
+                str(e),
+                context=get_context(self),
+            )
             self.error.emit(
                 {
                     "title": self.translations["SSLCERTIFICATE_ERROR_TITLE"],
@@ -91,6 +98,12 @@ class SSLCertificateWorker(TaskWorker):
                 }
             )
         except (socket.error, ssl.SSLError) as e:
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start ssl certificate failed",
+                str(e),
+                context=get_context(self),
+            )
             self.error.emit(
                 {
                     "title": self.translations["SSLCERTIFICATE_ERROR_TITLE"],
@@ -99,6 +112,12 @@ class SSLCertificateWorker(TaskWorker):
                 }
             )
         except (OSError, IOError) as e:
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start ssl certificate failed",
+                str(e),
+                context=get_context(self),
+            )
             self.error.emit(
                 {
                     "title": self.translations["SSLCERTIFICATE_ERROR_TITLE"],
@@ -109,6 +128,12 @@ class SSLCertificateWorker(TaskWorker):
                 }
             )
         except Exception as e:
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start ssl certificate failed",
+                str(e),
+                context=get_context(self),
+            )
             self.error.emit(
                 {
                     "title": self.translations["SSLCERTIFICATE_ERROR_TITLE"],

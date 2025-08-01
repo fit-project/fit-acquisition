@@ -10,6 +10,7 @@
 import logging
 import socket
 
+from fit_common.core import debug, get_context, log_exception
 from fit_common.gui.utils import Status
 from whois import IPV4_OR_V6, NICClient, extract_domain
 
@@ -47,6 +48,12 @@ class WhoisWorker(TaskWorker):
             self.logger.info(result)
             self.finished.emit()
         except socket.herror as e:
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start whois failed",
+                str(e),
+                context=get_context(self),
+            )
             self.error.emit(
                 {
                     "title": self.translations["WHOIS_ERROR_TITLE"],
@@ -55,6 +62,12 @@ class WhoisWorker(TaskWorker):
                 }
             )
         except ValueError as e:
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start whois failed",
+                str(e),
+                context=get_context(self),
+            )
             self.error.emit(
                 {
                     "title": self.translations["WHOIS_ERROR_TITLE"],
@@ -63,6 +76,12 @@ class WhoisWorker(TaskWorker):
                 }
             )
         except Exception as e:
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start whois failed",
+                str(e),
+                context=get_context(self),
+            )
             self.error.emit(
                 {
                     "title": self.translations["WHOIS_ERROR_TITLE"],
@@ -81,11 +100,9 @@ class TaskWhois(Task):
             label="WHOIS",
             worker_class=WhoisWorker,
         )
-    
 
     def start(self):
         super().start_task(self.translations["WHOIS_STARTED"])
-    
 
     def _finished(self, status=Status.SUCCESS, details=""):
         message = self.translations["WHOIS_GET_INFO_URL"].format(

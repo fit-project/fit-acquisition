@@ -10,6 +10,7 @@
 import logging
 from urllib.parse import urlparse
 
+from fit_common.core import debug, get_context, log_exception
 from fit_common.gui.utils import Status
 from fit_configurations.controller.tabs.network.network_check import (
     NetworkCheckController,
@@ -56,6 +57,12 @@ class NslookupWorker(TaskWorker):
             self.finished.emit()
 
         except ValueError as e:
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start nslookup failed",
+                str(e),
+                context=get_context(self),
+            )
             self.error.emit(
                 {
                     "title": self.translations["NSLOOKUP_ERROR_TITLE"],
@@ -64,6 +71,12 @@ class NslookupWorker(TaskWorker):
                 }
             )
         except Exception as e:
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start nslookup failed",
+                str(e),
+                context=get_context(self),
+            )
             self.error.emit(
                 {
                     "title": self.translations["NSLOOKUP_ERROR_TITLE"],
@@ -93,7 +106,7 @@ class TaskNslookup(Task):
         options = NetworkCheckController().configuration
         options["url"] = url
         self._options = options
-    
+
     def start(self):
         super().start_task(self.translations["NSLOOKUP_STARTED"])
 

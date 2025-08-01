@@ -11,6 +11,7 @@ import logging
 from urllib.parse import urlparse
 
 import requests
+from fit_common.core import debug, get_context, log_exception
 from fit_common.gui.utils import Status
 
 from fit_acquisition.tasks.task import Task
@@ -24,7 +25,6 @@ class HeadersWorker(TaskWorker):
         parsed = urlparse(url)
         if not parsed.netloc:
             raise ValueError(self.translations["MALFORMED_URL_ERROR"])
-
         try:
             response = requests.get(url, verify=False, timeout=10)
             response.raise_for_status()
@@ -42,25 +42,49 @@ class HeadersWorker(TaskWorker):
             self.finished.emit()
 
         except ValueError as e:
-            self.error.emit({
-                "title": self.translations["HEADERS_ERROR_TITLE"],
-                "message": str(e),
-                "details": str(e),
-            })
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start headers failed",
+                str(e),
+                context=get_context(self),
+            )
+            self.error.emit(
+                {
+                    "title": self.translations["HEADERS_ERROR_TITLE"],
+                    "message": str(e),
+                    "details": str(e),
+                }
+            )
 
         except ConnectionError as e:
-            self.error.emit({
-                "title": self.translations["HEADERS_ERROR_TITLE"],
-                "message": self.translations["HTTP_CONNECTION_ERROR"],
-                "details": str(e),
-            })
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start headers failed",
+                str(e),
+                context=get_context(self),
+            )
+            self.error.emit(
+                {
+                    "title": self.translations["HEADERS_ERROR_TITLE"],
+                    "message": self.translations["HTTP_CONNECTION_ERROR"],
+                    "details": str(e),
+                }
+            )
 
         except Exception as e:
-            self.error.emit({
-                "title": self.translations["HEADERS_ERROR_TITLE"],
-                "message": self.translations["HEADERS_EXECUTION_ERROR"],
-                "details": str(e),
-            })
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start headers failed",
+                str(e),
+                context=get_context(self),
+            )
+            self.error.emit(
+                {
+                    "title": self.translations["HEADERS_ERROR_TITLE"],
+                    "message": self.translations["HEADERS_EXECUTION_ERROR"],
+                    "details": str(e),
+                }
+            )
 
 
 class TaskHeaders(Task):
