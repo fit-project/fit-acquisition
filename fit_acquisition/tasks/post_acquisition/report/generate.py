@@ -12,7 +12,7 @@ import os
 import zipfile
 from importlib.resources import files
 
-from fit_common.core import get_local_version
+from fit_common.core import get_version
 from fit_configurations.controller.tabs.general.legal_proceeding_type import (
     LegalProceedingTypeController,
 )
@@ -60,7 +60,7 @@ class GenerateReport:
             t1=self.translations["T1"],
             title=self.translations["TITLE"],
             report=self.translations["REPORT"],
-            version=get_local_version(),
+            version=get_version(),
         )
 
         sections = []

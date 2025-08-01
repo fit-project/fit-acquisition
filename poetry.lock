@@ -412,7 +412,7 @@ sqlalchemy = "^2.0.40"
 type = "git"
 url = "https://github.com/fit-project/fit-cases.git"
 reference = "main"
-resolved_reference = "dedd3b13ef0cfd692085799d88e0578abd885cce"
+resolved_reference = "fd398fd24520a406ffb7d3b5e38878199c6e47cd"
 
 [[package]]
 name = "fit-common"
@@ -435,7 +435,7 @@ windows-tools = {version = "^2.5.0", markers = "sys_platform == \"win32\""}
 type = "git"
 url = "https://github.com/fit-project/fit-common.git"
 reference = "main"
-resolved_reference = "df42d1850fafd2026815c5a6190c4c1b18df267e"
+resolved_reference = "76f8869cc173a2c72709ce430d98e8f569c960ae"
 
 [[package]]
 name = "fit-configurations"
@@ -457,7 +457,7 @@ sqlalchemy = "^2.0.40"
 type = "git"
 url = "https://github.com/fit-project/fit-configurations.git"
 reference = "main"
-resolved_reference = "994e30dc7e4790985fe90cbb96b05ebe0e10c666"
+resolved_reference = "f02c5816a7c06e827e71dbeba285b9dc05dff451"
 
 [[package]]
 name = "greenlet"
