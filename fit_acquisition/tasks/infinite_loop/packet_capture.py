@@ -11,6 +11,7 @@ import logging
 import os
 
 import scapy.all as scapy
+from fit_common.core import debug, get_context, log_exception
 from fit_common.gui.utils import Status
 from fit_configurations.controller.tabs.packet_capture.packet_capture import (
     PacketCaptureController,
@@ -46,6 +47,12 @@ class PacketCaptureWorker(TaskWorker):
         try:
             self.sniffer.start()
         except Exception as e:
+            log_exception(e, context=get_context(self))
+            debug(
+                "Start packet capture failed",
+                str(e),
+                context=get_context(self),
+            )
             self.error.emit(
                 {
                     "title": self.translations["PACKET_CAPTURE"],
@@ -63,6 +70,12 @@ class PacketCaptureWorker(TaskWorker):
             scapy.wrpcap(self.options.get("output_file"), self.sniffer.results)
             self.finished.emit()
         except Exception as e:
+            log_exception(e, context=get_context(self))
+            debug(
+                "Stop packet capture failed",
+                str(e),
+                context=get_context(self),
+            )
             self.error.emit(
                 {
                     "title": self.translations["PACKET_CAPTURE"],
@@ -75,13 +88,13 @@ class PacketCaptureWorker(TaskWorker):
 class TaskPacketCapture(Task):
     def __init__(self, logger, progress_bar=None, status_bar=None):
         super().__init__(
-            logger, 
+            logger,
             progress_bar,
-            status_bar, 
+            status_bar,
             label="PACKET_CAPTURE",
             is_infinite_loop=True,
-            worker_class=PacketCaptureWorker
-            )
+            worker_class=PacketCaptureWorker,
+        )
 
     @Task.options.getter
     def options(self):
@@ -99,7 +112,7 @@ class TaskPacketCapture(Task):
 
     def stop(self):
         super().stop_task(self.translations["NETWORK_PACKET_CAPTURE_STOPPED"])
-    
+
     def _started(self):
         super()._started(self.translations["NETWORK_PACKET_CAPTURE_STARTED_DETAILS"])
 
@@ -108,7 +121,8 @@ class TaskPacketCapture(Task):
         if status == Status.SUCCESS:
             details = self.translations["NETWORK_PACKET_CAPTURE_COMPLETED_DETAILS"]
 
-        super()._finished(status, details, self.translations["NETWORK_PACKET_CAPTURE_COMPLETED"].format(status.name))
-        
-
-    
+        super()._finished(
+            status,
+            details,
+            self.translations["NETWORK_PACKET_CAPTURE_COMPLETED"].format(status.name),
+        )
