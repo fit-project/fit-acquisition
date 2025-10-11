@@ -19,7 +19,7 @@ This package is part of the broader [fit](https://github.com/fit-project/fit) ec
 
 Main dependencies are:
 
-- Python `>=3.9,<3.13`
+- Python `>=3.11,<3.13`
 - [`PySide6`](https://pypi.org/project/PySide6/) 6.9.0
 - `fit-cases` (custom submodule)
 - `fit-configurations` (custom submodule)
