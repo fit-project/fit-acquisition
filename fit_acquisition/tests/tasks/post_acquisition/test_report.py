@@ -18,7 +18,7 @@ from fit_configurations.logger import LogConfigTools
 from PySide6.QtWidgets import QMainWindow
 
 from fit_acquisition.lang import load_translations
-from fit_acquisition.tasks.post_acquisition.report.report import TaskReport
+from fit_acquisition.tasks.post_acquisition.report import TaskReport
 from fit_acquisition.tests.tasks.tasks_ui import Ui_MainWindow
 
 translations = load_translations()
