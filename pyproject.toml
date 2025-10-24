@@ -29,7 +29,7 @@ pytest = "^8.4.1"
 pytest-qt = "^4.5.0"
 pypdf = ">=5.8.0,<7.0.0"
 
-fit-cases = {git = "https://github.com/fit-project/fit-cases.git", branch = "chore/update-python-compatibility-3.13"}
+fit-cases = {git = "https://github.com/fit-project/fit-cases.git", rev = "main"}
 
 
 
