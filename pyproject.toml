@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fit-acquisition"
-version = "1.0.16"
+version = "1.0.0"
 description = "Utilities and base classes for content acquisition, shared across FIT scraper modules."
 authors = ["FIT Project"]
 license = "LGPL-3.0-or-later"
@@ -15,7 +15,7 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.11,<3.13"
+python = ">=3.11,<3.14"
 PySide6 = "6.9.0"
 requests = "^2.31"
 python-whois = "^0.9.5"
@@ -29,7 +29,7 @@ pytest = "^8.4.1"
 pytest-qt = "^4.5.0"
 pypdf = ">=5.8.0,<7.0.0"
 
-fit-cases = {git = "https://github.com/fit-project/fit-cases.git", rev = "main"}
+fit-cases = {git = "https://github.com/fit-project/fit-cases.git", branch = "chore/update-python-compatibility-3.13"}
 
 
 
