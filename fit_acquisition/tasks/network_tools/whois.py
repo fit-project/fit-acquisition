@@ -33,8 +33,15 @@ class WhoisWorker(TaskWorker):
         if not domain:
             raise ValueError(self.translations["WHOIS_INVALID_DOMAIN_ERROR"])
 
+        domain = (
+            domain.decode("utf-8", "ignore")
+            if isinstance(domain, (bytes, bytearray))
+            else domain
+        )
+        domain = domain.strip().rstrip(".").lower()
+
         nic_client = NICClient()
-        result = nic_client.whois_lookup(None, domain.encode("idna"), flags)
+        result = nic_client.whois_lookup(None, domain, flags)
 
         if not result:
             raise ValueError(self.translations["WHOIS_INVALID_DOMAIN_ERROR"])
