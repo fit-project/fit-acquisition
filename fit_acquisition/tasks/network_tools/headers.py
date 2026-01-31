@@ -25,10 +25,30 @@ class HeadersWorker(TaskWorker):
         parsed = urlparse(url)
         if not parsed.netloc:
             raise ValueError(self.translations["MALFORMED_URL_ERROR"])
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        }
         try:
-            response = requests.get(url, verify=False, timeout=10)
+            response = requests.get(url, headers=headers, verify=False, timeout=10)
             response.raise_for_status()
             return response.headers
+        except requests.exceptions.HTTPError as e:
+            if e.response is not None:
+                status_code = e.response.status_code
+                if status_code in (400, 401, 403, 405, 406, 429):
+                    # Fallback to HEAD with same headers for common anti-bot responses
+                    response = requests.head(
+                        url, headers=headers, verify=False, timeout=10
+                    )
+                    if response.status_code in (400, 401, 403, 405, 406, 429):
+                        return response.headers
+                    response.raise_for_status()
+                    return response.headers
+                # Return headers even for other HTTP errors to avoid hard-failing
+                return e.response.headers
+            raise ConnectionError(str(e))
         except requests.exceptions.RequestException as e:
             raise ConnectionError(str(e))
 
