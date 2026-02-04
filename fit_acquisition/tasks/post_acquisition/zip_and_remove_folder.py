@@ -61,16 +61,28 @@ class ZipAndRemoveFolderWorker(TaskWorker):
                 debug("✅ zipped acquisition_content_directory", context=get_context(self))
 
         has_files_downloads_folder = []
+        has_files_screenshot_folder = []
 
         downloads_folder = os.path.join(self.options["acquisition_directory"], "downloads")
+        screenshot_folder = os.path.join(self.options["acquisition_directory"], "screenshot")
         debug(
             f"ℹ️ downloads_folder={downloads_folder} exists={os.path.isdir(downloads_folder)}",
+            context=get_context(self),
+        )
+        debug(
+            f"ℹ️ screenshot_folder={screenshot_folder} exists={os.path.isdir(screenshot_folder)}",
             context=get_context(self),
         )
         if os.path.isdir(downloads_folder):
             has_files_downloads_folder = os.listdir(downloads_folder)
             debug(
                 f"ℹ️ downloads_folder file_count={len(has_files_downloads_folder)}",
+                context=get_context(self),
+            )
+        if os.path.isdir(screenshot_folder):
+            has_files_screenshot_folder = os.listdir(screenshot_folder)
+            debug(
+                f"ℹ️ screenshot_folder file_count={len(has_files_screenshot_folder)}",
                 context=get_context(self),
             )
 
@@ -95,6 +107,27 @@ class ZipAndRemoveFolderWorker(TaskWorker):
                 )
                 return
             debug("✅ zipped downloads_folder", context=get_context(self))
+        if len(has_files_screenshot_folder) > 0:
+            debug(
+                f"ℹ️ zipping screenshot_folder={screenshot_folder}",
+                context=get_context(self),
+            )
+            try:
+                shutil.make_archive(screenshot_folder, "zip", screenshot_folder)
+            except (OSError, shutil.Error) as exc:
+                debug(
+                    f"❌ zip screenshot_folder failed: {exc}",
+                    context=get_context(self),
+                )
+                self.error.emit(
+                    {
+                        "title": self.translations["ZIP_AND_REMOVE_FOLDER"],
+                        "message": self.translations["ZIP_AND_REMOVE_FOLDER_ERROR"],
+                        "details": str(exc),
+                    }
+                )
+                return
+            debug("✅ zipped screenshot_folder", context=get_context(self))
         try:
             if acquisition_content_directory and os.path.isdir(
                 acquisition_content_directory
@@ -115,6 +148,13 @@ class ZipAndRemoveFolderWorker(TaskWorker):
                 )
                 shutil.rmtree(downloads_folder)
                 debug("✅ removed downloads_folder", context=get_context(self))
+            if os.path.isdir(screenshot_folder):
+                debug(
+                    f"ℹ️ removing screenshot_folder={screenshot_folder}",
+                    context=get_context(self),
+                )
+                shutil.rmtree(screenshot_folder)
+                debug("✅ removed screenshot_folder", context=get_context(self))
             self.finished.emit()
             debug("✅ ZipAndRemoveFolderWorker.start: done", context=get_context(self))
 
