@@ -21,41 +21,44 @@ class ZipAndRemoveFolderWorker(TaskWorker):
     def start(self):
         debug("ℹ️ ZipAndRemoveFolderWorker.start: begin", context=get_context(self))
         self.started.emit()
-        acquisition_content_directory = self.options.get(
-            "acquisition_content_directory"
-        )
-        if not acquisition_content_directory or not os.path.isdir(
-            acquisition_content_directory
-        ):
-            debug(
-                f"⚠️ acquisition_content_directory missing: {acquisition_content_directory}",
-                context=get_context(self),
+
+        acquisition_content_directory = None
+        if self.options.get("type") != "web":
+            acquisition_content_directory = self.options.get(
+                "acquisition_content_directory"
             )
-        else:
-            debug(
-                f"ℹ️ zipping acquisition_content_directory={acquisition_content_directory}",
-                context=get_context(self),
-            )
-            try:
-                shutil.make_archive(
-                    acquisition_content_directory,
-                    "zip",
-                    acquisition_content_directory,
-                )
-            except (OSError, shutil.Error) as exc:
+            if not acquisition_content_directory or not os.path.isdir(
+                acquisition_content_directory
+            ):
                 debug(
-                    f"❌ zip acquisition_content_directory failed: {exc}",
+                    f"⚠️ acquisition_content_directory missing: {acquisition_content_directory}",
                     context=get_context(self),
                 )
-                self.error.emit(
-                    {
-                        "title": self.translations["ZIP_AND_REMOVE_FOLDER"],
-                        "message": self.translations["ZIP_AND_REMOVE_FOLDER_ERROR"],
-                        "details": str(exc),
-                    }
+            else:
+                debug(
+                    f"ℹ️ zipping acquisition_content_directory={acquisition_content_directory}",
+                    context=get_context(self),
                 )
-                return
-            debug("✅ zipped acquisition_content_directory", context=get_context(self))
+                try:
+                    shutil.make_archive(
+                        acquisition_content_directory,
+                        "zip",
+                        acquisition_content_directory,
+                    )
+                except (OSError, shutil.Error) as exc:
+                    debug(
+                        f"❌ zip acquisition_content_directory failed: {exc}",
+                        context=get_context(self),
+                    )
+                    self.error.emit(
+                        {
+                            "title": self.translations["ZIP_AND_REMOVE_FOLDER"],
+                            "message": self.translations["ZIP_AND_REMOVE_FOLDER_ERROR"],
+                            "details": str(exc),
+                        }
+                    )
+                    return
+                debug("✅ zipped acquisition_content_directory", context=get_context(self))
 
         has_files_downloads_folder = []
 
