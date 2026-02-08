@@ -18,13 +18,14 @@ from fit_configurations.logger import LogConfigTools
 from PySide6.QtWidgets import QMainWindow
 
 from fit_acquisition.lang import load_translations
+from fit_acquisition.logger_names import LoggerName
 from fit_acquisition.tasks.post_acquisition.zip_and_remove_folder import (
     TaskZipAndRemoveFolder,
 )
 from fit_acquisition.tests.tasks.tasks_ui import Ui_MainWindow
 
 translations = load_translations()
-logger = logging.getLogger("scraper.web")
+logger = logging.getLogger(LoggerName.SCRAPER_WEB.value)
 
 
 @pytest.fixture(scope="module")

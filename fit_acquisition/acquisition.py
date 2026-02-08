@@ -22,6 +22,7 @@ from shiboken6 import isValid
 from fit_acquisition.class_names import class_names
 from fit_acquisition.lang import load_translations
 from fit_acquisition.logger import LogConfigTools
+from fit_acquisition.logger_names import LoggerName
 from fit_acquisition.post import PostAcquisition
 from fit_acquisition.tasks.tasks_manager import TasksManager
 
@@ -155,7 +156,7 @@ class Acquisition(QObject):
     def load_tasks(self):
         self.log_confing = LogConfigTools()
 
-        if self.logger.name == "scraper.web":
+        if self.logger.name == LoggerName.SCRAPER_WEB.value:
             self.log_confing.set_dynamic_loggers()
 
         self.log_confing.change_filehandlers_path(self.options["acquisition_directory"])

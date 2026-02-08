@@ -15,6 +15,8 @@ from fit_configurations.controller.tabs.network.network_tool import (
     NetworkToolController,
 )
 
+from fit_acquisition.logger_names import LoggerName
+
 # Produce RFC 3339 timestamps
 logging.Formatter.formatTime = (
     lambda self, record, datefmt: datetime.datetime.fromtimestamp(
@@ -57,27 +59,30 @@ class LogConfigTools:
                 },
             },
             "loggers": {
-                "scraper.web": {
+                LoggerName.SCRAPER_WEB.value: {
                     "handlers": ["facquisition"],
                     "level": "INFO",
                 },
-                "scraper.mail": {
+                LoggerName.SCRAPER_MAIL.value: {
                     "handlers": ["facquisition"],
                     "level": "INFO",
                 },
-                "scraper.instagram": {
+                LoggerName.SCRAPER_INSTAGRAM.value: {
                     "handlers": ["facquisition"],
                     "level": "INFO",
                 },
-                "scraper.video": {
+                LoggerName.SCRAPER_VIDEO.value: {
                     "handlers": ["facquisition"],
                     "level": "INFO",
                 },
-                "scraper.entire_website": {
+                LoggerName.SCRAPER_ENTIRE_WEBSITE.value: {
                     "handlers": ["facquisition"],
                     "level": "INFO",
                 },
-                "hashreport": {"handlers": ["fhashreport"], "level": "INFO"},
+                LoggerName.HASHREPORT.value: {
+                    "handlers": ["fhashreport"],
+                    "level": "INFO",
+                },
             },
             "root": {"handlers": ["null"], "propagate": False},
         }
