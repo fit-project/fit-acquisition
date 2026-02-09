@@ -8,6 +8,8 @@ packages = [
     { include = "fit_acquisition" }
 ]
 
+exclude = ["fit_acquisition/ui/**", "fit_acquisition/tests/**"]
+
 include = [
     "fit_assets/icons/info-circle.png",
     "fit_assets/templates/*.html",
