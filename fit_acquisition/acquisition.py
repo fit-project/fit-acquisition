@@ -73,6 +73,7 @@ class Acquisition(QObject):
             {"value": "FIT_USERNAME", "label": self.translations["FIT_USERNAME"]},
             {"value": "FIT_HOST_IP", "label": self.translations["FIT_HOST_IP"]},
             {"value": "FIT_DNS", "label": self.translations["FIT_DNS"]},
+            {"value": "FIT_PUBLIC_IP", "label": self.translations["FIT_PUBLIC_IP"]},
             {"value": "FIT_MITM_PORT", "label": self.translations["FIT_MITM_PORT"]},
             {
                 "value": "FIT_USER_SYSTEM_LANG",

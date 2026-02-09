@@ -76,6 +76,7 @@
     "GENERATE_PDF_REPORT": "Generate PDF Report",
     "GENERATE_PDF_REPORT_STARTED": "Generate PDF Report started",
     "GENERATE_PDF_REPORT_COMPLETED": "{}: Generate PDF Report completed",
+    "FIT_PUBLIC_IP": "Public IP Address",
     "FIT_VERSION": "FIT Version",
     "FIT_USER_APP_PATH": "FIT User App Path",
     "FIT_LOG_APP_PATH": "FIT Log App Path",
