@@ -8,7 +8,6 @@
 ######
 
 import os
-from contextlib import redirect_stdout
 from urllib.parse import urlparse
 
 import scapy.all as scapy
@@ -32,18 +31,19 @@ class TracerouteWorker(TaskWorker):
             netloc = netloc.split(":")[0]
 
             with open(filename, "w") as f:
-                with redirect_stdout(f):
-                    ans, unans = scapy.sr(
-                        scapy.IP(dst=netloc, ttl=(1, 22), id=scapy.RandShort())
-                        / scapy.TCP(flags=0x2),
-                        timeout=10,
-                        verbose=False,
-                    )
+                ans, unans = scapy.sr(
+                    scapy.IP(dst=netloc, ttl=(1, 22), id=scapy.RandShort())
+                    / scapy.TCP(flags=0x2),
+                    timeout=10,
+                    verbose=False,
+                )
 
-                    for snd, rcv in ans:
-                        print(
-                            f"TTL={snd.ttl} IP={rcv.src} TCP_response={isinstance(rcv.payload, scapy.TCP)}"
-                        )
+                for snd, rcv in ans:
+                    line = (
+                        f"TTL={snd.ttl} IP={rcv.src} "
+                        f"TCP_response={isinstance(rcv.payload, scapy.TCP)}"
+                    )
+                    f.write(line + "\n")
 
             self.finished.emit()
 
