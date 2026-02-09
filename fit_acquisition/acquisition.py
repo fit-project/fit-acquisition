@@ -8,8 +8,10 @@
 ######
 
 import logging.config
+import os
 from datetime import datetime, timezone
 from enum import Enum, auto
+from pathlib import Path
 
 from fit_common.core import get_ntp_date_and_time
 from fit_common.gui.utils import State
@@ -55,6 +57,28 @@ class Acquisition(QObject):
         self.__status_bar = None
 
         self.translations = load_translations()
+
+        self.__fit_system_environment_variables = [
+            {"value": "FIT_VERSION", "label": self.translations["FIT_VERSION"]},
+            {
+                "value": "FIT_USER_APP_PATH",
+                "label": self.translations["FIT_USER_APP_PATH"],
+            },
+            {
+                "value": "FIT_LOG_APP_PATH",
+                "label": self.translations["FIT_LOG_APP_PATH"],
+            },
+            {"value": "FIT_OS_TYPE", "label": self.translations["FIT_OS_TYPE"]},
+            {"value": "FIT_OS_VERSION", "label": self.translations["FIT_OS_VERSION"]},
+            {"value": "FIT_USERNAME", "label": self.translations["FIT_USERNAME"]},
+            {"value": "FIT_HOST_IP", "label": self.translations["FIT_HOST_IP"]},
+            {"value": "FIT_DNS", "label": self.translations["FIT_DNS"]},
+            {"value": "FIT_MITM_PORT", "label": self.translations["FIT_MITM_PORT"]},
+            {
+                "value": "FIT_USER_SYSTEM_LANG",
+                "label": self.translations["FIT_USER_SYSTEM_LANG"],
+            },
+        ]
 
         self.tasks_manager = TasksManager()
 
@@ -271,6 +295,21 @@ class Acquisition(QObject):
             self.__progress_bar.setValue(
                 self.__progress_bar.value() + (100 - self.__progress_bar.value())
             )
+
+    def write_fit_system_environment_variables(
+        self, filename: str = "system_info.txt"
+    ) -> None:
+        acquisition_directory = self.options["acquisition_directory"]
+        output_path = Path(acquisition_directory) / filename
+
+        lines = []
+        for item in self.__fit_system_environment_variables:
+            env_value = os.environ.get(item["value"])
+            if env_value is None:
+                continue
+            lines.append(f"{item['label']}: {env_value}")
+
+        output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     def __destroyed_handler(self, __dict):
         self.unload_tasks()
