@@ -10,7 +10,7 @@
 import os
 import shutil
 
-from fit_common.core import debug, get_context
+from fit_common.core import AcquisitionType, debug, get_context
 from fit_common.gui.utils import Status
 
 from fit_acquisition.tasks.task import Task
@@ -23,7 +23,7 @@ class ZipAndRemoveFolderWorker(TaskWorker):
         self.started.emit()
 
         acquisition_content_directory = None
-        if self.options.get("type") != "web":
+        if self.options.get("type") != AcquisitionType.WEB:
             acquisition_content_directory = self.options.get(
                 "acquisition_content_directory"
             )
@@ -58,13 +58,19 @@ class ZipAndRemoveFolderWorker(TaskWorker):
                         }
                     )
                     return
-                debug("✅ zipped acquisition_content_directory", context=get_context(self))
+                debug(
+                    "✅ zipped acquisition_content_directory", context=get_context(self)
+                )
 
         has_files_downloads_folder = []
         has_files_screenshot_folder = []
 
-        downloads_folder = os.path.join(self.options["acquisition_directory"], "downloads")
-        screenshot_folder = os.path.join(self.options["acquisition_directory"], "screenshot")
+        downloads_folder = os.path.join(
+            self.options["acquisition_directory"], "downloads"
+        )
+        screenshot_folder = os.path.join(
+            self.options["acquisition_directory"], "screenshot"
+        )
         debug(
             f"ℹ️ downloads_folder={downloads_folder} exists={os.path.isdir(downloads_folder)}",
             context=get_context(self),
@@ -185,10 +191,9 @@ class TaskZipAndRemoveFolder(Task):
     def start(self):
         super().start_task(self.translations["ZIP_AND_REMOVE_FOLDER_STARTED"])
 
-
     def _finished(self, status=Status.SUCCESS, details=""):
         message = self.translations["ZIP_AND_REMOVE_FOLDER_COMPLETED"].format(
-                status.name
+            status.name
         )
 
         super()._finished(status, details, message)
