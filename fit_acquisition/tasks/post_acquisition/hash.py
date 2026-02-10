@@ -10,7 +10,6 @@
 import hashlib
 import logging
 import os
-import time
 
 from fit_common.gui.utils import Status
 
@@ -29,29 +28,6 @@ class HashWorker(TaskWorker):
 
             return file_hash.hexdigest()
 
-    def __wait_file_stable(
-        self, filename, interval_seconds=1.0, timeout_seconds=5.0
-    ) -> bool:
-        deadline = time.monotonic() + timeout_seconds
-        previous_stats = None
-
-        while True:
-            try:
-                current_stats = os.stat(filename)
-            except OSError:
-                return False
-
-            # Consider the file stable only when two consecutive samples match.
-            current_signature = (current_stats.st_size, current_stats.st_mtime_ns)
-            if previous_stats == current_signature:
-                return True
-
-            if time.monotonic() >= deadline:
-                return False
-
-            previous_stats = current_signature
-            time.sleep(interval_seconds)
-
     def start(self):
         self.started.emit()
 
@@ -65,11 +41,6 @@ class HashWorker(TaskWorker):
         for file in files:
             if file not in self.options["exclude_list"]:
                 filename = os.path.join(self.options["acquisition_directory"], file)
-                if not self.__wait_file_stable(filename):
-                    self.logger.warning(
-                        "Skipping hash calculation for unstable file: %s", file
-                    )
-                    continue
                 file_stats = os.stat(filename)
                 self.logger.info(
                     "========================================================="
