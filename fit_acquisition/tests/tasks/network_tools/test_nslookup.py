@@ -14,10 +14,10 @@ import os
 import pytest
 from fit_common.core import resolve_path
 from fit_common.gui.utils import State, Status
-from fit_configurations.logger import LogConfigTools
 from PySide6.QtWidgets import QMainWindow
 
 from fit_acquisition.lang import load_translations
+from fit_acquisition.logger import LogConfigTools
 from fit_acquisition.logger_names import LoggerName
 from fit_acquisition.tasks.network_tools.nslookup import TaskNslookup
 from fit_acquisition.tests.tasks.tasks_ui import Ui_MainWindow

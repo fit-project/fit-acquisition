@@ -6,13 +6,13 @@ import os
 import sys
 
 from fit_common.core import resolve_path
-from fit_configurations.logger import LogConfigTools
 from PySide6 import QtCore, QtWidgets
 from PySide6.QtCore import Qt
 
 from fit_acquisition.acquisition import Acquisition
 from fit_acquisition.class_names import class_names
 from fit_acquisition.lang import load_translations
+from fit_acquisition.logger import LogConfigTools
 from fit_acquisition.logger_names import LoggerName
 from fit_acquisition.tasks.tasks_info import TasksInfo
 
