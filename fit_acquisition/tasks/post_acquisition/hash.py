@@ -38,6 +38,7 @@ class HashWorker(TaskWorker):
         ]
         self.options["exclude_list"].append("acquisition.hash")
         self.options["exclude_list"].append("acquisition.log")
+        self.options["exclude_list"].append("sslkey.log")
         for file in files:
             if file not in self.options["exclude_list"]:
                 filename = os.path.join(self.options["acquisition_directory"], file)
