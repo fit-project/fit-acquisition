@@ -142,7 +142,7 @@
     "SECTION_TITLE_DATA_OWNERSHIP_VERIFICATION": "Verifica titolarità dei dati",
     "SECTION_DESCRIPTION_DATA_OWNERSHIP_VERIFICATION": "Nel corso dell'acquisizione, l'utente navigava alcuni siti web. FIT  procedeva alla verifica di ciascuna connessione mediante routine appositamente implementate.  In particolare, ai fini di stabilire la titolarità dei domini coinvolti, venivano indicate le  seguenti informazioni:",
     "SECTION_TITLE_SCREENSHOTS": "Screenshot della pagina",
-    "SECTION_DESCRIPTION_SCREENSHOTS": "Di seguito sono riportati gli screenshot della pagina navigata durante l’attività di acquisizione.",
+    "SECTION_DESCRIPTION_SCREENSHOTS": "Di seguito è riportato lo screenshot della pagina acquisita.",
     "SECTION_TITLE_VIDEO_ACQUISITION": "Acquisizione video",
     "SECTION_DESCRIPTION_VIDEO_ACQUISITION": "Di seguito è riportato il collegamento alla registrazione video della sessione di acquisizione.",
     "SECTION_TITLE_VERIFICATION" : "Verifica",

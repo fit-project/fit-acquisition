@@ -142,7 +142,7 @@
     "SECTION_TITLE_DATA_OWNERSHIP_VERIFICATION": "Data ownership verification",
     "SECTION_DESCRIPTION_DATA_OWNERSHIP_VERIFICATION": "During the acquisition, the user browsed some websites. FIT verified each connection through specifically implemented routines. In particular, in order to establish ownership of the involved domains, the following information was provided:",
     "SECTION_TITLE_SCREENSHOTS": "Page screenshots",
-    "SECTION_DESCRIPTION_SCREENSHOTS": "Below are the screenshots of the page browsed during the acquisition activity.",
+    "SECTION_DESCRIPTION_SCREENSHOTS": "Below is the screenshot of the acquired page.",
     "SECTION_TITLE_VIDEO_ACQUISITION": "Video acquisition",
     "SECTION_DESCRIPTION_VIDEO_ACQUISITION": "Below is the link to the video recording of the acquisition session.",
     "SECTION_TITLE_VERIFICATION": "Verification",
