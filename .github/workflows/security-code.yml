@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Copyright (c) 2023 FIT-Project
+
+name: Security code scan
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "fit_acquisition/**"
+      - "pyproject.toml"
+      - "poetry.lock"
+      - ".github/actions/setup-fit-env/**"
+      - ".github/workflows/security-code.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bandit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-fit-env
+        with:
+          python-version: "3.11"
+          system-packages: "libcairo2-dev pkg-config"
+          python-packages: "bandit[toml]"
+
+      - name: Run bandit
+        run: |
+          bandit -c pyproject.toml -r fit_acquisition -q -ll -ii
