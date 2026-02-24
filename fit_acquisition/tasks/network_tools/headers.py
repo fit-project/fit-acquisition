@@ -21,7 +21,7 @@ from fit_acquisition.tasks.task_worker import TaskWorker
 class HeadersWorker(TaskWorker):
     logger = logging.getLogger("headers")
 
-    def __get_headers_information(self, url):
+    def __get_headers_information(self, url, verify_tls=True):
         parsed = urlparse(url)
         if not parsed.netloc:
             raise ValueError(self.translations["MALFORMED_URL_ERROR"])
@@ -31,7 +31,7 @@ class HeadersWorker(TaskWorker):
             "Chrome/120.0.0.0 Safari/537.36"
         }
         try:
-            response = requests.get(url, headers=headers, verify=False, timeout=10)
+            response = requests.get(url, headers=headers, verify=verify_tls, timeout=10)
             response.raise_for_status()
             return response.headers
         except requests.exceptions.HTTPError as e:
@@ -40,7 +40,7 @@ class HeadersWorker(TaskWorker):
                 if status_code in (400, 401, 403, 405, 406, 429):
                     # Fallback to HEAD with same headers for common anti-bot responses
                     response = requests.head(
-                        url, headers=headers, verify=False, timeout=10
+                        url, headers=headers, verify=verify_tls, timeout=10
                     )
                     if response.status_code in (400, 401, 403, 405, 406, 429):
                         return response.headers
@@ -55,7 +55,8 @@ class HeadersWorker(TaskWorker):
     def start(self):
         self.started.emit()
         try:
-            headers = self.__get_headers_information(self.options["url"])
+            verify_tls = self.options.get("verify_tls", True)
+            headers = self.__get_headers_information(self.options["url"], verify_tls)
             headers = dict(headers)
             for key, value in headers.items():
                 self.logger.info(f"{key}: {value}")

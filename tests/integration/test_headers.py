@@ -38,6 +38,58 @@ def test_headers_worker_success(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.integration
+def test_headers_worker_uses_tls_verification_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    worker = headers_module.HeadersWorker()
+    worker.options = {"url": "https://example.org"}
+
+    class _Response:
+        headers = {"Server": "nginx"}
+
+        def raise_for_status(self) -> None:
+            return None
+
+    captured: dict[str, object] = {}
+
+    def _fake_get(*args, **kwargs):
+        captured["verify"] = kwargs.get("verify")
+        return _Response()
+
+    monkeypatch.setattr(headers_module.requests, "get", _fake_get)
+
+    worker.start()
+
+    assert captured["verify"] is True
+
+
+@pytest.mark.integration
+def test_headers_worker_allows_explicit_tls_disable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    worker = headers_module.HeadersWorker()
+    worker.options = {"url": "https://example.org", "verify_tls": False}
+
+    class _Response:
+        headers = {"Server": "nginx"}
+
+        def raise_for_status(self) -> None:
+            return None
+
+    captured: dict[str, object] = {}
+
+    def _fake_get(*args, **kwargs):
+        captured["verify"] = kwargs.get("verify")
+        return _Response()
+
+    monkeypatch.setattr(headers_module.requests, "get", _fake_get)
+
+    worker.start()
+
+    assert captured["verify"] is False
+
+
+@pytest.mark.integration
 def test_task_headers_start_uses_translation(monkeypatch: pytest.MonkeyPatch) -> None:
     task = headers_module.TaskHeaders(_Logger())
     calls: list[str] = []

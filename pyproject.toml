@@ -47,3 +47,43 @@ markers = [
     "integration: tests that exercise multiple components together",
     "e2e: end-to-end UI workflow tests",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"fit_acquisition/tasks/tasks_info_ui.py" = ["F401"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+disable_error_code = ["import-untyped", "import-not-found"]
+
+[[tool.mypy.overrides]]
+module = [
+    "fit_common",
+    "fit_common.*",
+    "fit_configurations",
+    "fit_configurations.*",
+    "whois",
+    "whois.*",
+    "nslookup",
+    "nslookup.*",
+    "scapy",
+    "scapy.*",
+    "rfc3161ng",
+    "rfc3161ng.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["fit_acquisition.logger"]
+disable_error_code = ["method-assign", "misc", "assignment"]
+
+[[tool.mypy.overrides]]
+module = [
+    "fit_acquisition.tasks.infinite_loop.packet_capture",
+    "fit_acquisition.tasks.infinite_loop.screen_recorder",
+    "fit_acquisition.tasks.network_tools.nslookup",
+    "fit_acquisition.tasks.post_acquisition.hash",
+    "fit_acquisition.tasks.post_acquisition.timestamp",
+    "fit_acquisition.tasks.post_acquisition.pec.pec_and_download_eml",
+]
+disable_error_code = ["no-redef", "attr-defined"]
