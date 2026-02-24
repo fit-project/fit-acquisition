@@ -39,7 +39,10 @@ def test_task_start_and_stop_delegate_without_ui() -> None:
         stop=lambda: calls.__setitem__("worker_stop", calls["worker_stop"] + 1),
     )
     task.worker_thread = SimpleNamespace(
-        start=lambda: calls.__setitem__("thread_start", calls["thread_start"] + 1)
+        start=lambda: calls.__setitem__("thread_start", calls["thread_start"] + 1),
+        isRunning=lambda: False,
+        quit=lambda: None,
+        wait=lambda: None,
     )
 
     task.start_task("start-msg")
