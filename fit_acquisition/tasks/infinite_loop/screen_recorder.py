@@ -135,7 +135,12 @@ class ScreenRecorderWorker(TaskWorker):
     def __join_audio_and_video(self):
         try:
             if self.__is_enabled_audio_recording:
-                from moviepy import AudioFileClip, VideoFileClip
+                try:
+                    from moviepy import AudioFileClip, VideoFileClip
+                except ImportError as e:
+                    raise RuntimeError(
+                        "moviepy is required to merge audio and video tracks"
+                    ) from e
 
                 output_path = self.__filename + ".mp4"
                 audio_path = self.__get_file_path(self.__audio_path)

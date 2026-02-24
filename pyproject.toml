@@ -8,7 +8,7 @@ packages = [
     { include = "fit_acquisition" }
 ]
 
-exclude = ["fit_acquisition/ui/**", "fit_acquisition/tests/**"]
+exclude = ["fit_acquisition/ui/**", "tests/**"]
 
 include = [
     "fit_assets/icons/info-circle.png",
@@ -25,13 +25,10 @@ scapy = "^2.5.0"
 nslookup = "^1.3.0"
 xhtml2pdf = "^0.2.17"
 jinja2 = "^3.1.6"
-moviepy = "^2.1.2"
 rfc3161ng = "^2.1.3"
-pytest = "^8.4.1"
-pytest-qt = "^4.5.0"
 pypdf = ">=5.8.0,<7.0.0"
 
-fit-cases = {git = "https://github.com/fit-project/fit-cases.git", rev = "main"}
+fit-cases = {git = "https://github.com/fit-project/fit-cases.git", tag = "v1.0.0-rc1"}
 
 
 
@@ -39,3 +36,14 @@ fit-cases = {git = "https://github.com/fit-project/fit-cases.git", rev = "main"}
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers"
+pythonpath = ["."]
+markers = [
+    "unit: fast isolated tests",
+    "contract: interface and behavior contracts",
+    "integration: tests that exercise multiple components together",
+    "e2e: end-to-end UI workflow tests",
+]
