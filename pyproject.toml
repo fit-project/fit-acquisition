@@ -43,8 +43,8 @@ addopts = "--strict-markers"
 pythonpath = ["."]
 markers = [
     "unit: fast isolated tests",
-    "contract: interface and behavior contracts",
-    "integration: tests that exercise multiple components together",
+    "contract: cross-module contract tests for public interfaces and integrations",
+    "integration: integration tests with real external resources and dependencies",
     "e2e: end-to-end UI workflow tests",
 ]
 
