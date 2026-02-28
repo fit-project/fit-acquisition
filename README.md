@@ -40,7 +40,7 @@ Run these commands before opening a PR, so failures are caught locally first.
 
 ### 1) Base setup
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
 python -m pip install -U pip
 pip install . pytest ruff mypy "bandit[toml]" pip-audit
@@ -80,7 +80,7 @@ Note: `pip-audit` may print a skip message for `fit-acquisition`, `fit-assets`, 
 ## Installation
 
 ``` bash
-    python3 -m venv .venv
+    python3.11 -m venv .venv
     source .venv/bin/activate
     pip install --upgrade pip
     pip install poetry

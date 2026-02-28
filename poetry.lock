@@ -29,14 +29,14 @@ files = [
 
 [[package]]
 name = "certifi"
-version = "2026.1.4"
+version = "2026.2.25"
 description = "Python package for providing Mozilla's CA Bundle."
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 files = [
-    {file = "certifi-2026.1.4-py3-none-any.whl", hash = "sha256:9943707519e4add1115f44c2bc244f782c0249876bf51b6599fee1ffbedd685c"},
-    {file = "certifi-2026.1.4.tar.gz", hash = "sha256:ac726dd470482006e014ad384921ed6438c457018f4b3d204aea4281258b2120"},
+    {file = "certifi-2026.2.25-py3-none-any.whl", hash = "sha256:027692e4402ad994f1c42e52a4997a9763c646b73e4096e4d5d6db8af1d6f0fa"},
+    {file = "certifi-2026.2.25.tar.gz", hash = "sha256:e887ab5cee78ea814d3472169153c2d12cd43b14bd03329a39a9c6e2e80bfba7"},
 ]
 
 [[package]]
@@ -410,7 +410,7 @@ resolved_reference = "41c79f7cac046356867ed5198d053ac86d053c56"
 
 [[package]]
 name = "fit-cases"
-version = "1.0.0"
+version = "1.0.0rc1"
 description = "Modulo di configurazione per il progetto FIT"
 optional = false
 python-versions = ">=3.11,<3.14"
@@ -419,7 +419,7 @@ files = []
 develop = false
 
 [package.dependencies]
-fit-configurations = {git = "https://github.com/fit-project/fit-configurations.git", tag = "v1.0.0-rc1"}
+fit-configurations = {git = "https://github.com/fit-project/fit-configurations.git", branch = "main"}
 pillow = ">=12.1.1,<13.0.0"
 PySide6 = "6.9.0"
 sqlalchemy = "^2.0.40"
@@ -427,12 +427,12 @@ sqlalchemy = "^2.0.40"
 [package.source]
 type = "git"
 url = "https://github.com/fit-project/fit-cases.git"
-reference = "v1.0.0-rc1"
-resolved_reference = "42557d22ee54bff11ecfd98c419c7e4fb89e809f"
+reference = "main"
+resolved_reference = "38d17907b37ba183fc8e18560c4ae8d3148bbec8"
 
 [[package]]
 name = "fit-common"
-version = "1.0.0rc1"
+version = "1.0.0rc2"
 description = "Shared code between modules of the FIT project"
 optional = false
 python-versions = ">=3.11,<3.14"
@@ -455,8 +455,8 @@ xhtml2pdf = "^0.2.17"
 [package.source]
 type = "git"
 url = "https://github.com/fit-project/fit-common.git"
-reference = "v1.0.0-rc2"
-resolved_reference = "46cb34d7e63f059e3672267956dc2c350a5ae63c"
+reference = "main"
+resolved_reference = "020afdd35950b0532c322eae5f78df8257c469a2"
 
 [[package]]
 name = "fit-configurations"
@@ -470,15 +470,15 @@ develop = false
 
 [package.dependencies]
 fit-assets = {git = "https://github.com/fit-project/fit-assets.git", tag = "v1.0.0-rc2"}
-fit-common = {git = "https://github.com/fit-project/fit-common.git", tag = "v1.0.0-rc2"}
+fit-common = {git = "https://github.com/fit-project/fit-common.git", branch = "main"}
 PySide6 = "6.9.0"
 sqlalchemy = "^2.0.40"
 
 [package.source]
 type = "git"
 url = "https://github.com/fit-project/fit-configurations.git"
-reference = "v1.0.0-rc1"
-resolved_reference = "399087f605ad3d4167c51ccceb2d3d2289e8e0eb"
+reference = "main"
+resolved_reference = "914202df91c972f9879a06728eba31675543aef3"
 
 [[package]]
 name = "freetype-py"
@@ -1339,14 +1339,14 @@ async-http = ["aiohttp (>=3.9,<3.14)"]
 
 [[package]]
 name = "pypdf"
-version = "6.7.3"
+version = "6.7.4"
 description = "A pure-python PDF library capable of splitting, merging, cropping, and transforming PDF files"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "pypdf-6.7.3-py3-none-any.whl", hash = "sha256:cd25ac508f20b554a9fafd825186e3ba29591a69b78c156783c5d8a2d63a1c0a"},
-    {file = "pypdf-6.7.3.tar.gz", hash = "sha256:eca55c78d0ec7baa06f9288e2be5c4e8242d5cbb62c7a4b94f2716f8e50076d2"},
+    {file = "pypdf-6.7.4-py3-none-any.whl", hash = "sha256:527d6da23274a6c70a9cb59d1986d93946ba8e36a6bc17f3f7cce86331492dda"},
+    {file = "pypdf-6.7.4.tar.gz", hash = "sha256:9edd1cd47938bb35ec87795f61225fd58a07cfaf0c5699018ae1a47d6f8ab0e3"},
 ]
 
 [package.extras]
@@ -2121,4 +2121,4 @@ test = ["coverage (>=5.3)", "tomli (>=2.0.1) ; python_version < \"3.11\"", "tox"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "3a1103c9f57271b469e93b3df8dc991ae7414bcf997ec05f66c5539927fd5739"
+content-hash = "be7cebc4bc6b0b74d8d7cf2eb39c7e206a5a8e9bbb98a35659d2304b9fce7e02"
