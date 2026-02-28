@@ -19,7 +19,7 @@ from fit_acquisition.logger_names import LoggerName
 
 # Produce RFC 3339 timestamps
 logging.Formatter.formatTime = (
-    lambda self, record, datefmt: datetime.datetime.fromtimestamp(
+    lambda self, record, datefmt=None: datetime.datetime.fromtimestamp(
         record.created, datetime.timezone.utc
     )
     .astimezone()

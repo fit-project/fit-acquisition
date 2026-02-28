@@ -9,11 +9,10 @@
 
 import logging.config
 import os
-from datetime import datetime, timezone
 from enum import Enum, auto
 from pathlib import Path
 
-from fit_common.core import get_ntp_date_and_time
+from fit_common.core import get_ntp_time_info
 from fit_common.gui.utils import State
 from fit_configurations.controller.tabs.network.network_check import (
     NetworkCheckController,
@@ -281,12 +280,7 @@ class Acquisition(QObject):
 
     def get_time(self):
         ntp_server = NetworkCheckController().configuration["ntp_server"]
-        ntp_time = get_ntp_date_and_time(ntp_server)
-
-        if ntp_time:
-            return {"datetime": ntp_time, "server": ntp_server}
-        else:
-            return {"datetime": datetime.now(timezone.utc), "server": None}
+        return get_ntp_time_info(ntp_server)
 
     def calculate_increment(self):
         return 100 / len(self.tasks_manager.get_tasks())

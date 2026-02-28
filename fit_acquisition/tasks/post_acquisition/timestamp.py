@@ -10,10 +10,10 @@
 import os
 
 import requests
+from fit_acquisition.timestamp_verifier import request_timestamp_token
 from fit_common.core import debug, get_context, log_exception
 from fit_common.gui.utils import Status
 from fit_configurations.controller.tabs.timestamp.timestamp import TimestampController
-from rfc3161ng.api import RemoteTimestamper
 
 from fit_acquisition.tasks.task import Task
 from fit_acquisition.tasks.task_worker import TaskWorker
@@ -43,14 +43,14 @@ class TimestampWorker(TaskWorker):
             with open(cert_path, "rb") as f:
                 certificate = f.read()
 
-            # create the object
-            rt = RemoteTimestamper(
-                self.options["server_name"], certificate=certificate, hashname="sha256"
-            )
-
-            # file to be certificated
+            # Request the timestamp first, then verify it locally with RSA/EC support.
             with open(pdf_path, "rb") as f:
-                timestamp = rt.timestamp(data=f.read())
+                timestamp = request_timestamp_token(
+                    self.options["server_name"],
+                    data=f.read(),
+                    certificate=certificate,
+                    hashname="sha256",
+                )
 
             # saving the timestamp
             with open(ts_path, "wb") as f:
