@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-import builtins
+import subprocess
+import threading
+import time
 
 import pytest
 from PySide6 import QtWidgets
@@ -45,37 +47,136 @@ def test_workers_emit_error_payload_on_invalid_input(worker_cls, options) -> Non
 
 
 @pytest.mark.unit
-def test_screen_recorder_emits_error_when_moviepy_missing(
-    qapp: QtWidgets.QApplication, monkeypatch: pytest.MonkeyPatch
+def test_screen_recorder_emits_error_when_binary_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     worker = screen_module.ScreenRecorderWorker()
+    worker.options = {
+        "acquisition_directory": "/tmp/acq",
+        "filename": "/tmp/acq/screenrecorder",
+    }
 
-    # Force merge path without touching real media files.
-    worker._ScreenRecorderWorker__is_enabled_audio_recording = True
-    worker._ScreenRecorderWorker__audio_path = "/tmp/audio"
-    worker._ScreenRecorderWorker__video_path = "/tmp/video"
-    worker._ScreenRecorderWorker__filename = "/tmp/out"
-    monkeypatch.setattr(
-        worker,
-        "_ScreenRecorderWorker__get_file_path",
-        lambda _path: "/tmp/fake.bin",
-    )
-
-    original_import = builtins.__import__
-
-    def _fake_import(name, *args, **kwargs):
-        if name == "moviepy":
-            raise ImportError("moviepy not installed")
-        return original_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", _fake_import)
+    monkeypatch.setattr(screen_module.shutil, "which", lambda _name: None)
 
     errors: list[dict] = []
     worker.error.connect(lambda payload: errors.append(payload))
 
-    worker._ScreenRecorderWorker__join_audio_and_video()
+    worker.start()
 
     assert len(errors) == 1
     payload = errors[0]
     assert payload["details"]
-    assert "moviepy" in payload["details"].lower()
+    assert "fit-screen-recorder" in payload["details"]
+    assert "path" in payload["details"].lower()
+
+
+class _FakeStdin:
+    def __init__(self, process: "_FakeProcess") -> None:
+        self._process = process
+        self.writes: list[str] = []
+        self.flush_count = 0
+
+    def write(self, value: str) -> None:
+        self.writes.append(value)
+        if value == "stop\n":
+            self._process.finish()
+
+    def flush(self) -> None:
+        self.flush_count += 1
+
+
+class _FakeProcess:
+    def __init__(
+        self,
+        *,
+        stdout_lines: list[str] | None = None,
+        stderr_lines: list[str] | None = None,
+        returncode: int = 0,
+    ) -> None:
+        self.stdout = iter(stdout_lines or [])
+        self.stderr = iter(stderr_lines or [])
+        self.stdin = _FakeStdin(self)
+        self.returncode = None
+        self._final_returncode = returncode
+        self._finished = threading.Event()
+        self.terminate_calls = 0
+
+    def poll(self) -> int | None:
+        return self.returncode
+
+    def wait(self, timeout: float | None = None) -> int:
+        if not self._finished.wait(timeout):
+            raise subprocess.TimeoutExpired(cmd="fit-screen-recorder", timeout=timeout)
+        self.returncode = self._final_returncode
+        return self.returncode
+
+    def terminate(self) -> None:
+        self.terminate_calls += 1
+        self.finish()
+
+    def kill(self) -> None:
+        self.finish()
+
+    def finish(self) -> None:
+        self.returncode = self._final_returncode
+        self._finished.set()
+
+
+@pytest.mark.unit
+def test_screen_recorder_starts_and_stops_external_binary(
+    qapp: QtWidgets.QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    worker = screen_module.ScreenRecorderWorker()
+    worker.options = {
+        "acquisition_directory": "/tmp/acq",
+        "filename": "/tmp/acq/screenrecorder",
+    }
+
+    fake_process = _FakeProcess(stdout_lines=["backend=mac\n", "runner=ready\n"])
+    popen_calls: list[list[str]] = []
+
+    monkeypatch.setattr(
+        screen_module.shutil,
+        "which",
+        lambda _name: "/tmp/bin/fit-screen-recorder",
+    )
+
+    def _fake_popen(command, **_kwargs):
+        popen_calls.append(command)
+        return fake_process
+
+    monkeypatch.setattr(screen_module.subprocess, "Popen", _fake_popen)
+    started: list[bool] = []
+    finished: list[bool] = []
+    errors: list[dict] = []
+    worker.started.connect(lambda: started.append(True))
+    worker.finished.connect(lambda: finished.append(True))
+    worker.error.connect(lambda payload: errors.append(payload))
+
+    worker.start()
+
+    timeout = time.time() + 1
+    while not started and time.time() < timeout:
+        qapp.processEvents()
+        time.sleep(0.01)
+
+    worker.stop()
+
+    timeout = time.time() + 1
+    while not finished and time.time() < timeout:
+        qapp.processEvents()
+        time.sleep(0.01)
+
+    assert popen_calls == [[
+        "/tmp/bin/fit-screen-recorder",
+        "--output",
+        "/tmp/acq/screenrecorder",
+        "--stdin-control",
+        "--no-audio",
+    ]]
+    assert started == [True]
+    assert finished == [True]
+    assert errors == []
+    assert fake_process.stdin.writes == ["stop\n"]
+    assert fake_process.stdin.flush_count == 1

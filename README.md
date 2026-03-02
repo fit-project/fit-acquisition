@@ -50,6 +50,9 @@ python -m pip install --upgrade "setuptools>=78.1.1"
 ### 2) Test suite
 ```bash
 export QT_QPA_PLATFORM=offscreen
+export PATH="<path>/fit-screen-recorder/build:$PATH"
+# example
+export PATH="/Users/zitelog/Developer/Workspace/fit-screen-recorder/build:$PATH"
 
 # unit tests
 pytest -m unit -q tests

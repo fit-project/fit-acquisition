@@ -8,19 +8,14 @@
 ######
 
 import os
+import shutil
+import subprocess
+import threading
 
 from fit_common.core import debug, get_context, log_exception
-from fit_common.gui.multimedia import get_vb_cable_virtual_audio_device
 from fit_common.gui.utils import Status
 from fit_configurations.controller.tabs.screen_recorder.screen_recorder import (
     ScreenRecorderController,
-)
-from PySide6.QtCore import QUrl
-from PySide6.QtMultimedia import (
-    QAudioInput,
-    QMediaCaptureSession,
-    QMediaRecorder,
-    QScreenCapture,
 )
 from PySide6.QtWidgets import QApplication
 
@@ -32,70 +27,89 @@ class ScreenRecorderWorker(TaskWorker):
     def __init__(self):
         super().__init__()
 
+        self.__binary_name = "fit-screen-recorder"
+        self.__binary_path = None
+        self.__filename = ""
         self.__is_enabled_audio_recording = False
+        self.__process = None
+        self.__stdout_thread = None
+        self.__stderr_thread = None
+        self.__wait_thread = None
+        self.__stop_requested = False
+        self.__started_emitted = False
+        self.__stderr_lines = []
+        self.__lock = threading.RLock()
+
         self.destroyed.connect(self.stop)
-
-        # Video recording
-        self.__video_to_record_session = QMediaCaptureSession()
-        self.__screen_to_record = QScreenCapture()
-        self.__video_to_record_session.setScreenCapture(self.__screen_to_record)
-        self.__video_recorder = QMediaRecorder()
-        self.__video_recorder.recorderStateChanged.connect(
-            self.__video_recorder_state_handler
-        )
-        self.__video_to_record_session.setRecorder(self.__video_recorder)
-
-    def __video_recorder_state_handler(self, recorder_state):
-        if recorder_state == QMediaRecorder.RecorderState.StoppedState:
-            self.__join_audio_and_video()
 
     @TaskWorker.options.setter
     def options(self, options):
         self._options = options
         self.__acquisition_directory = options["acquisition_directory"]
-        self.__filename = options["filename"]
+        self.__filename = os.path.join(
+            self.__acquisition_directory, options["filename"]
+        )
 
         app = QApplication.instance()
-        screen = app.screenAt(options["window_pos"])
-        if screen:
-            self.__screen_to_record.setScreen(screen)
-
-        if hasattr(app, "is_enabled_audio_recording"):
-            self.__is_enabled_audio_recording = getattr(
-                app, "is_enabled_audio_recording"
-            )
-
-        if self.__is_enabled_audio_recording:
-            self.__audio_path = os.path.join(
-                self.__acquisition_directory, "screenrecorder/audio"
-            )
-            self.__video_path = os.path.join(
-                self.__acquisition_directory, "screenrecorder/video"
-            )
-            self.__create_screen_recorder_directories()
-
-            self.__video_recorder.setOutputLocation(
-                QUrl.fromLocalFile(os.path.join(self.__video_path, "screenrecorder"))
-            )
-
-            self.__audio_capture_session = QMediaCaptureSession()
-            self.__audio_input = QAudioInput(get_vb_cable_virtual_audio_device())
-            self.__audio_capture_session.setAudioInput(self.__audio_input)
-            self.__audio_recorder = QMediaRecorder()
-            self.__audio_recorder.setOutputLocation(
-                QUrl.fromLocalFile(os.path.join(self.__audio_path, "screenrecorder"))
-            )
-            self.__audio_capture_session.setRecorder(self.__audio_recorder)
-        else:
-            self.__video_recorder.setOutputLocation(QUrl.fromLocalFile(self.__filename))
+        self.__is_enabled_audio_recording = bool(
+            app
+            and hasattr(app, "is_enabled_audio_recording")
+            and app.is_enabled_audio_recording
+        )
 
     def start(self):
         try:
-            self.__screen_to_record.start()
-            self.__video_recorder.record()
-            if self.__is_enabled_audio_recording:
-                self.__audio_recorder.record()
-            self.started.emit()
+            with self.__lock:
+                if self.__process and self.__process.poll() is None:
+                    raise RuntimeError("screen recorder process is already running")
+
+                self.__binary_path = shutil.which(self.__binary_name)
+                if not self.__binary_path:
+                    raise FileNotFoundError(
+                        f"{self.__binary_name} not found in PATH. Export PATH with the "
+                        "directory containing the binary before running the screen recorder."
+                    )
+
+                command = [
+                    self.__binary_path,
+                    "--output",
+                    self.__filename,
+                    "--stdin-control",
+                ]
+                if not self.__is_enabled_audio_recording:
+                    command.append("--no-audio")
+
+                self.__stop_requested = False
+                self.__started_emitted = False
+                self.__stderr_lines = []
+                self.__process = subprocess.Popen(
+                    command,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    bufsize=1,
+                )
+
+                self.__stdout_thread = threading.Thread(
+                    target=self.__read_stdout,
+                    args=(self.__process,),
+                    daemon=True,
+                )
+                self.__stderr_thread = threading.Thread(
+                    target=self.__read_stderr,
+                    args=(self.__process,),
+                    daemon=True,
+                )
+                self.__wait_thread = threading.Thread(
+                    target=self.__wait_for_process,
+                    args=(self.__process,),
+                    daemon=True,
+                )
+
+                self.__stdout_thread.start()
+                self.__stderr_thread.start()
+                self.__wait_thread.start()
         except Exception as e:
             log_exception(e, context=get_context(self))
             debug(
@@ -103,20 +117,35 @@ class ScreenRecorderWorker(TaskWorker):
                 str(e),
                 context=get_context(self),
             )
-            self.error.emit(
-                {
-                    "title": self.translations["SCREEN_RECORDER_ERROR_TITLE"],
-                    "message": self.translations["SCREEN_RECORDER_ERROR_MSG"],
-                    "details": str(e),
-                }
-            )
+            self.__emit_error(str(e))
 
     def stop(self):
         try:
-            self.__video_recorder.stop()
-            self.__screen_to_record.stop()
-            if self.__is_enabled_audio_recording:
-                self.__audio_recorder.stop()
+            with self.__lock:
+                process = self.__process
+                if not process or process.poll() is not None:
+                    return
+
+                self.__stop_requested = True
+                stdin = process.stdin
+
+            if stdin:
+                try:
+                    stdin.write("stop\n")
+                    stdin.flush()
+                except BrokenPipeError:
+                    debug(
+                        "Screen recorder stdin already closed",
+                        context=get_context(self),
+                    )
+            else:
+                process.terminate()
+
+            threading.Thread(
+                target=self.__enforce_stop_timeout,
+                args=(process,),
+                daemon=True,
+            ).start()
         except Exception as e:
             log_exception(e, context=get_context(self))
             debug(
@@ -124,59 +153,132 @@ class ScreenRecorderWorker(TaskWorker):
                 str(e),
                 context=get_context(self),
             )
-            self.error.emit(
-                {
-                    "title": self.translations["SCREEN_RECORDER_ERROR_TITLE"],
-                    "message": self.translations["SCREEN_RECORDER_ERROR_MSG"],
-                    "details": str(e),
-                }
-            )
+            self.__emit_error(str(e))
 
-    def __join_audio_and_video(self):
+    def __read_stdout(self, process):
+        stdout = process.stdout
+        if stdout is None:
+            return
+
         try:
-            if self.__is_enabled_audio_recording:
-                try:
-                    from moviepy import AudioFileClip, VideoFileClip
-                except ImportError as e:
-                    raise RuntimeError(
-                        "moviepy is required to merge audio and video tracks"
-                    ) from e
+            for line in stdout:
+                stripped_line = line.strip()
+                if stripped_line:
+                    debug(
+                        "fit-screen-recorder stdout",
+                        stripped_line,
+                        context=get_context(self),
+                    )
 
-                output_path = self.__filename + ".mp4"
-                audio_path = self.__get_file_path(self.__audio_path)
-                video_path = self.__get_file_path(self.__video_path)
-                video = VideoFileClip(video_path)
-                audio = AudioFileClip(audio_path)
-                video.set_audio(audio).write_videofile(
-                    output_path, codec="libx264", audio_codec="aac"
-                )
-
-            self.finished.emit()
+                if stripped_line == "runner=ready":
+                    with self.__lock:
+                        if self.__process is process and not self.__started_emitted:
+                            self.__started_emitted = True
+                            self.started.emit()
         except Exception as e:
             log_exception(e, context=get_context(self))
             debug(
-                "Join audio and video failed",
+                "Read screen recorder stdout failed",
                 str(e),
                 context=get_context(self),
             )
-            self.error.emit(
-                {
-                    "title": self.translations["SCREEN_RECORDER_ERROR_TITLE"],
-                    "message": self.translations["SCREEN_RECORDER_ERROR_MSG"],
-                    "details": str(e),
-                }
+
+    def __read_stderr(self, process):
+        stderr = process.stderr
+        if stderr is None:
+            return
+
+        try:
+            for line in stderr:
+                stripped_line = line.strip()
+                if not stripped_line:
+                    continue
+
+                with self.__lock:
+                    if self.__process is process:
+                        self.__stderr_lines.append(stripped_line)
+                        self.__stderr_lines = self.__stderr_lines[-20:]
+
+                debug(
+                    "fit-screen-recorder stderr",
+                    stripped_line,
+                    context=get_context(self),
+                )
+        except Exception as e:
+            log_exception(e, context=get_context(self))
+            debug(
+                "Read screen recorder stderr failed",
+                str(e),
+                context=get_context(self),
             )
 
-    def __get_file_path(self, directory):
-        for root, dirs, files in os.walk(directory):
-            for file in files:
-                if file.startswith("screenrecorder"):
-                    return os.path.join(root, file)
-        return None
+    def __wait_for_process(self, process):
+        try:
+            return_code = process.wait()
+        except Exception as e:
+            log_exception(e, context=get_context(self))
+            debug(
+                "Wait screen recorder process failed",
+                str(e),
+                context=get_context(self),
+            )
+            self.__emit_error(str(e))
+            return
 
-    def __create_screen_recorder_directories(self):
-        os.makedirs(self.__audio_path, exist_ok=True)
-        os.makedirs(self.__video_path, exist_ok=True)
+        with self.__lock:
+            if self.__process is not process:
+                return
+
+            stop_requested = self.__stop_requested
+            started_emitted = self.__started_emitted
+            stderr_details = "\n".join(self.__stderr_lines).strip()
+            self.__process = None
+
+        if return_code == 0:
+            if stop_requested:
+                self.finished.emit()
+                return
+
+            if started_emitted:
+                self.__emit_error("fit-screen-recorder terminated unexpectedly")
+                return
+
+            self.__emit_error(
+                "fit-screen-recorder terminated before reporting readiness"
+            )
+            return
+
+        details = (
+            stderr_details or f"fit-screen-recorder exited with code {return_code}"
+        )
+        self.__emit_error(details)
+
+    def __enforce_stop_timeout(self, process):
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            debug(
+                "Screen recorder stop timeout reached, terminating process",
+                context=get_context(self),
+            )
+            process.terminate()
+            try:
+                process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                debug(
+                    "Screen recorder terminate timeout reached, killing process",
+                    context=get_context(self),
+                )
+                process.kill()
+
+    def __emit_error(self, details):
+        self.error.emit(
+            {
+                "title": self.translations["SCREEN_RECORDER_ERROR_TITLE"],
+                "message": self.translations["SCREEN_RECORDER_ERROR_MSG"],
+                "details": details,
+            }
+        )
 
 
 class TaskScreenRecorder(Task):
@@ -208,7 +310,6 @@ class TaskScreenRecorder(Task):
         super()._started(self.translations["SCREEN_RECORDER_STARTED_DETAILS"])
 
     def _finished(self, status=Status.SUCCESS, details=""):
-
         if status == Status.SUCCESS:
             details = self.translations["NETWORK_PACKET_CAPTURE_COMPLETED_DETAILS"]
 
