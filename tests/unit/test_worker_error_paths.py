@@ -55,8 +55,7 @@ def test_screen_recorder_emits_error_when_binary_is_missing(
         "acquisition_directory": "/tmp/acq",
         "filename": "/tmp/acq/screenrecorder",
     }
-
-    monkeypatch.setattr(screen_module.shutil, "which", lambda _name: None)
+    monkeypatch.delenv("FIT_SCREEN_RECODER_PATH", raising=False)
 
     errors: list[dict] = []
     worker.error.connect(lambda payload: errors.append(payload))
@@ -135,12 +134,7 @@ def test_screen_recorder_starts_and_stops_external_binary(
 
     fake_process = _FakeProcess(stdout_lines=["backend=mac\n", "runner=ready\n"])
     popen_calls: list[list[str]] = []
-
-    monkeypatch.setattr(
-        screen_module.shutil,
-        "which",
-        lambda _name: "/tmp/bin/fit-screen-recorder",
-    )
+    monkeypatch.setenv("FIT_SCREEN_RECODER_PATH", "/tmp/bin/fit-screen-recorder")
 
     def _fake_popen(command, **_kwargs):
         popen_calls.append(command)
@@ -171,7 +165,7 @@ def test_screen_recorder_starts_and_stops_external_binary(
     assert popen_calls == [[
         "/tmp/bin/fit-screen-recorder",
         "--output",
-        "/tmp/acq/screenrecorder",
+        "/tmp/acq/screenrecorder.mp4",
         "--stdin-control",
         "--no-audio",
     ]]

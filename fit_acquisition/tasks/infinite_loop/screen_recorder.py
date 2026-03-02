@@ -8,7 +8,7 @@
 ######
 
 import os
-import shutil
+import pwd
 import subprocess
 import threading
 
@@ -27,7 +27,6 @@ class ScreenRecorderWorker(TaskWorker):
     def __init__(self):
         super().__init__()
 
-        self.__binary_name = "fit-screen-recorder"
         self.__binary_path = None
         self.__filename = ""
         self.__is_enabled_audio_recording = False
@@ -47,8 +46,9 @@ class ScreenRecorderWorker(TaskWorker):
         self._options = options
         self.__acquisition_directory = options["acquisition_directory"]
         self.__filename = os.path.join(
-            self.__acquisition_directory, options["filename"]
+            self.__acquisition_directory, options["filename"] + ".mp4"
         )
+        
 
         app = QApplication.instance()
         self.__is_enabled_audio_recording = bool(
@@ -63,11 +63,11 @@ class ScreenRecorderWorker(TaskWorker):
                 if self.__process and self.__process.poll() is None:
                     raise RuntimeError("screen recorder process is already running")
 
-                self.__binary_path = shutil.which(self.__binary_name)
+                self.__binary_path = os.environ.get("FIT_SCREEN_RECODER_PATH")
                 if not self.__binary_path:
                     raise FileNotFoundError(
-                        f"{self.__binary_name} not found in PATH. Export PATH with the "
-                        "directory containing the binary before running the screen recorder."
+                        "FIT_SCREEN_RECODER_PATH is not set. Export the full path to "
+                        "fit-screen-recorder before running the screen recorder."
                     )
 
                 command = [
@@ -82,6 +82,12 @@ class ScreenRecorderWorker(TaskWorker):
                 self.__stop_requested = False
                 self.__started_emitted = False
                 self.__stderr_lines = []
+                popen_kwargs = self.__build_popen_kwargs()
+                debug(
+                    "screen recorder command",
+                    command,
+                    context=get_context(self),
+                )
                 self.__process = subprocess.Popen(
                     command,
                     stdin=subprocess.PIPE,
@@ -89,6 +95,7 @@ class ScreenRecorderWorker(TaskWorker):
                     stderr=subprocess.PIPE,
                     text=True,
                     bufsize=1,
+                    **popen_kwargs,
                 )
 
                 self.__stdout_thread = threading.Thread(
@@ -118,6 +125,31 @@ class ScreenRecorderWorker(TaskWorker):
                 context=get_context(self),
             )
             self.__emit_error(str(e))
+
+    def __build_popen_kwargs(self):
+        sudo_user = os.environ.get("SUDO_USER")
+        if os.geteuid() != 0 or not sudo_user:
+            return {}
+
+        user_info = pwd.getpwnam(sudo_user)
+        child_env = os.environ.copy()
+        child_env["HOME"] = user_info.pw_dir
+        child_env["USER"] = sudo_user
+        child_env["LOGNAME"] = sudo_user
+
+        def demote():
+            os.initgroups(sudo_user, user_info.pw_gid)
+            os.setgid(user_info.pw_gid)
+            os.setuid(user_info.pw_uid)
+
+        debug(
+            f"Launching fit-screen-recorder as user {sudo_user}",
+            context=get_context(self),
+        )
+        return {
+            "env": child_env,
+            "preexec_fn": demote,
+        }
 
     def stop(self):
         try:
