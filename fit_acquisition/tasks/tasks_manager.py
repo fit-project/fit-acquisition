@@ -83,7 +83,7 @@ class TasksManager(QObject):
                 task == class_names.PACKETCAPTURE
                 and PacketCaptureController().configuration["enabled"] is False
                 or task == class_names.SCREENRECORDER
-                and ScreenRecorderController().configuration["enabled"] is False
+                and ScreenRecorderController().configuration["enabled_video"] is False
                 or task == class_names.TIMESTAMP
                 and TimestampController().configuration["enabled"] is False
                 or task == class_names.PEC_AND_DOWNLOAD_EML
