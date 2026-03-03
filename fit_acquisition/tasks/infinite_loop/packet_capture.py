@@ -29,7 +29,7 @@ class PacketCaptureWorker(TaskWorker):
     def __init__(self):
         super().__init__()
         self.output_file = None
-        self.sniffer = scapy.AsyncSniffer()
+        self.sniffer = None
 
     @TaskWorker.options.getter
     def options(self):
@@ -43,9 +43,10 @@ class PacketCaptureWorker(TaskWorker):
         self._options = options
 
     def start(self):
-        self.started.emit()
         try:
+            self.sniffer = scapy.AsyncSniffer()
             self.sniffer.start()
+            self.started.emit()
         except Exception as e:
             log_exception(e, context=get_context(self))
             debug(
@@ -63,12 +64,16 @@ class PacketCaptureWorker(TaskWorker):
 
     def stop(self):
         try:
+            if self.sniffer is None:
+                self.finished.emit()
+                return
             self.sniffer.stop()
             loop = QEventLoop()
             QTimer.singleShot(1000, loop.quit)
             loop.exec()
             scapy.wrpcap(self.options.get("output_file"), self.sniffer.results)
             self.finished.emit()
+            self.sniffer = None
         except Exception as e:
             log_exception(e, context=get_context(self))
             debug(

@@ -17,7 +17,7 @@ from fit_acquisition.tasks.tasks_handler import TasksHandler
 from fit_acquisition.tasks.tasks_info_ui import Ui_tasks_info
 
 
-class TasksInfo(QtWidgets.QDialog):
+class TasksInfo(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(TasksInfo, self).__init__(parent)
         self.__task_handler = TasksHandler()
