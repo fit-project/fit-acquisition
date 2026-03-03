@@ -44,7 +44,8 @@ class PacketCaptureWorker(TaskWorker):
 
     def start(self):
         try:
-            self.sniffer = scapy.AsyncSniffer()
+            if self.sniffer is None:
+                self.sniffer = scapy.AsyncSniffer()
             self.sniffer.start()
             self.started.emit()
         except Exception as e:

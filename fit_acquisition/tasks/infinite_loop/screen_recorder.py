@@ -17,7 +17,6 @@ from fit_common.gui.utils import Status
 from fit_configurations.controller.tabs.screen_recorder.screen_recorder import (
     ScreenRecorderController,
 )
-from PySide6.QtWidgets import QApplication
 
 from fit_acquisition.tasks.task import Task
 from fit_acquisition.tasks.task_worker import TaskWorker
@@ -48,14 +47,10 @@ class ScreenRecorderWorker(TaskWorker):
         self.__filename = os.path.join(
             self.__acquisition_directory, options["filename"] + ".mp4"
         )
-        
 
-        app = QApplication.instance()
-        self.__is_enabled_audio_recording = bool(
-            app
-            and hasattr(app, "is_enabled_audio_recording")
-            and app.is_enabled_audio_recording
-        )
+        self.__is_enabled_audio_recording = ScreenRecorderController().configuration[
+            "enabled_audio"
+        ]
 
     def start(self):
         try:
