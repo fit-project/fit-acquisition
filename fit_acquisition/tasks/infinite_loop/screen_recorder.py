@@ -17,6 +17,7 @@ from fit_common.gui.utils import Status
 from fit_configurations.controller.tabs.screen_recorder.screen_recorder import (
     ScreenRecorderController,
 )
+from PySide6.QtWidgets import QApplication
 
 from fit_acquisition.tasks.task import Task
 from fit_acquisition.tasks.task_worker import TaskWorker
@@ -65,19 +66,23 @@ class ScreenRecorderWorker(TaskWorker):
                         "fit-screen-recorder before running the screen recorder."
                     )
 
+                popen_kwargs = self.__build_popen_kwargs()
                 command = [
                     self.__binary_path,
                     "--output",
                     self.__filename,
                     "--stdin-control",
                 ]
+                display_id = self.__resolve_display_id(popen_kwargs)
+                if display_id is not None:
+                    command.extend(["--display-id", str(display_id)])
+
                 if not self.__is_enabled_audio_recording:
                     command.append("--no-audio")
 
                 self.__stop_requested = False
                 self.__started_emitted = False
                 self.__stderr_lines = []
-                popen_kwargs = self.__build_popen_kwargs()
                 debug(
                     "screen recorder command",
                     command,
@@ -120,6 +125,75 @@ class ScreenRecorderWorker(TaskWorker):
                 context=get_context(self),
             )
             self.__emit_error(str(e))
+
+    def __resolve_display_id(self, popen_kwargs):
+        displays = self.__list_displays(popen_kwargs)
+        if len(displays) <= 1:
+            return None
+
+        app = QApplication.instance()
+        if app is None:
+            return None
+
+        screen = app.screenAt(self._options["window_pos"])
+        if screen is None:
+            return None
+
+        geometry = screen.geometry()
+        for display in displays:
+            if (
+                display.get("origin_x") == geometry.x()
+                and display.get("origin_y") == geometry.y()
+                and display.get("width") == geometry.width()
+                and display.get("height") == geometry.height()
+            ):
+                return display.get("id")
+
+        return None
+
+    def __list_displays(self, popen_kwargs):
+        process = subprocess.run(
+            [self.__binary_path, "--list-displays"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True,
+            **popen_kwargs,
+        )
+
+        entries = {}
+        for raw_line in process.stdout.splitlines():
+            line = raw_line.strip()
+            if not line or "=" not in line:
+                continue
+
+            key, value = line.split("=", 1)
+            entries[key] = value
+
+        display_count = int(entries.get("display_count", "0"))
+        displays = []
+        for index in range(display_count):
+            prefix = f"display.{index}."
+            display_id = entries.get(f"{prefix}id")
+            if display_id is None:
+                continue
+
+            displays.append(
+                {
+                    "id": int(display_id),
+                    "origin_x": int(entries.get(f"{prefix}origin_x", "0")),
+                    "origin_y": int(entries.get(f"{prefix}origin_y", "0")),
+                    "width": int(entries.get(f"{prefix}width", "0")),
+                    "height": int(entries.get(f"{prefix}height", "0")),
+                }
+            )
+
+        debug(
+            "screen recorder displays",
+            displays,
+            context=get_context(self),
+        )
+        return displays
 
     def __build_popen_kwargs(self):
         sudo_user = os.environ.get("SUDO_USER")

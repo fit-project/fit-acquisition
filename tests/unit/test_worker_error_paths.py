@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 import threading
 import time
+from types import SimpleNamespace
 
 import pytest
 from PySide6 import QtWidgets
@@ -135,6 +136,14 @@ def test_screen_recorder_starts_and_stops_external_binary(
     fake_process = _FakeProcess(stdout_lines=["backend=mac\n", "runner=ready\n"])
     popen_calls: list[list[str]] = []
     monkeypatch.setenv("FIT_SCREEN_RECODER_PATH", "/tmp/bin/fit-screen-recorder")
+    monkeypatch.setattr(
+        screen_module.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            stdout="display_count=1\ndisplay.0.id=1\n",
+            stderr="",
+        ),
+    )
 
     def _fake_popen(command, **_kwargs):
         popen_calls.append(command)
@@ -174,3 +183,83 @@ def test_screen_recorder_starts_and_stops_external_binary(
     assert errors == []
     assert fake_process.stdin.writes == ["stop\n"]
     assert fake_process.stdin.flush_count == 1
+
+
+@pytest.mark.unit
+def test_screen_recorder_adds_display_id_for_matching_screen(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    worker = screen_module.ScreenRecorderWorker()
+    worker.options = {
+        "acquisition_directory": "/tmp/acq",
+        "filename": "/tmp/acq/screenrecorder",
+        "window_pos": object(),
+    }
+
+    fake_process = _FakeProcess(stdout_lines=["backend=mac\n", "runner=ready\n"])
+    popen_calls: list[list[str]] = []
+    monkeypatch.setenv("FIT_SCREEN_RECODER_PATH", "/tmp/bin/fit-screen-recorder")
+    monkeypatch.setattr(
+        screen_module.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            stdout="\n".join(
+                [
+                    "display_count=2",
+                    "display.0.id=7",
+                    "display.0.origin_x=0",
+                    "display.0.origin_y=0",
+                    "display.0.width=1512",
+                    "display.0.height=982",
+                    "display.1.id=9",
+                    "display.1.origin_x=1512",
+                    "display.1.origin_y=0",
+                    "display.1.width=1728",
+                    "display.1.height=1117",
+                ]
+            ),
+            stderr="",
+        ),
+    )
+
+    class _FakeGeometry:
+        def x(self) -> int:
+            return 1512
+
+        def y(self) -> int:
+            return 0
+
+        def width(self) -> int:
+            return 1728
+
+        def height(self) -> int:
+            return 1117
+
+    class _FakeScreen:
+        def geometry(self) -> _FakeGeometry:
+            return _FakeGeometry()
+
+    class _FakeApp:
+        def screenAt(self, _pos):
+            return _FakeScreen()
+
+    monkeypatch.setattr(screen_module.QApplication, "instance", lambda: _FakeApp())
+
+    def _fake_popen(command, **_kwargs):
+        popen_calls.append(command)
+        return fake_process
+
+    monkeypatch.setattr(screen_module.subprocess, "Popen", _fake_popen)
+
+    worker.start()
+    worker.stop()
+
+    assert popen_calls == [[
+        "/tmp/bin/fit-screen-recorder",
+        "--output",
+        "/tmp/acq/screenrecorder.mp4",
+        "--stdin-control",
+        "--display-id",
+        "9",
+        "--no-audio",
+    ]]
