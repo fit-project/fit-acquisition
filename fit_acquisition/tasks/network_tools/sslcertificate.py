@@ -10,8 +10,11 @@
 import os
 import socket
 import ssl
+from importlib.resources import files
+from pathlib import Path
 from urllib.parse import urlparse
 
+import certifi
 from fit_common.core import debug, get_context, log_exception
 from fit_common.gui.utils import Status
 
@@ -20,6 +23,20 @@ from fit_acquisition.tasks.task_worker import TaskWorker
 
 
 class SSLCertificateWorker(TaskWorker):
+    def __build_verify_context(self):
+        context = ssl.create_default_context(cafile=certifi.where())
+        try:
+            mitm_ca_path = Path(
+                str(files("fit_assets").joinpath("mitmproxy/mitmproxy-ca-cert.pem"))
+            )
+            if mitm_ca_path.exists():
+                context.load_verify_locations(cafile=str(mitm_ca_path))
+        except Exception as e:
+            debug(
+                f"Unable to load mitmproxy CA certificate: {e}",
+                context=get_context(self),
+            )
+        return context
 
     def __check_if_peer_certificate_exist(self, url):
         parsed_url = urlparse(url)
@@ -29,11 +46,24 @@ class SSLCertificateWorker(TaskWorker):
         host = parsed_url.hostname
         port = parsed_url.port or 443
 
-        context = ssl.create_default_context()
-        with socket.create_connection((host, port), timeout=10) as sock:
-            with context.wrap_socket(sock, server_hostname=host) as ssock:
-                cert = ssock.getpeercert()
-                return bool(cert)
+        try:
+            context = self.__build_verify_context()
+            with socket.create_connection((host, port), timeout=10) as sock:
+                with context.wrap_socket(sock, server_hostname=host) as ssock:
+                    cert = ssock.getpeercert()
+                    return bool(cert)
+        except ssl.SSLCertVerificationError as e:
+            debug(
+                f"TLS verification failed in certificate check; fallback to unverified handshake: {e}",
+                context=get_context(self),
+            )
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            with socket.create_connection((host, port), timeout=10) as sock:
+                with context.wrap_socket(sock, server_hostname=host) as ssock:
+                    cert = ssock.getpeercert(True)
+                    return bool(cert)
 
     def __get_peer_PEM_cert(self, url, port=443, timeout=10):
         parsed_url = urlparse(url)
