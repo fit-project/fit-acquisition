@@ -12,20 +12,8 @@ import sys
 from importlib import import_module
 from inspect import getmembers, isclass
 
-from fit_configurations.controller.tabs.network.network_tool import (
-    NetworkToolController,
-)
-from fit_configurations.controller.tabs.packet_capture.packet_capture import (
-    PacketCaptureController,
-)
-from fit_configurations.controller.tabs.pec.pec import PecController
-from fit_configurations.controller.tabs.screen_recorder.screen_recorder import (
-    ScreenRecorderController,
-)
-from fit_configurations.controller.tabs.timestamp.timestamp import TimestampController
 from PySide6.QtCore import QObject, Signal
 
-from fit_acquisition.class_names import class_names
 from fit_acquisition.tasks.tasks_handler import TasksHandler
 
 
@@ -63,47 +51,8 @@ class TasksManager(QObject):
                 module = sys.modules[modname]
 
                 for name, obj in getmembers(module, isclass):
-                    if getattr(obj, "__is_task__", False) and bool(
-                        self.is_enabled_tasks(name)
-                    ):
+                    if getattr(obj, "__is_task__", False):
                         self.class_names_modules.setdefault(name, []).append(module)
-
-    def is_enabled_tasks(self, tasks):
-        if isinstance(tasks, str):
-            tasks = self.__remove_disable_tasks([tasks])
-        elif isinstance(tasks, list):
-            tasks = self.__remove_disable_tasks(tasks)
-
-        return tasks
-
-    def __remove_disable_tasks(self, tasks):
-        _tasks = tasks.copy()
-        for task in tasks:
-            if (
-                task == class_names.PACKETCAPTURE
-                and PacketCaptureController().configuration["enabled"] is False
-                or task == class_names.SCREENRECORDER
-                and ScreenRecorderController().configuration["enabled_video"] is False
-                or task == class_names.TIMESTAMP
-                and TimestampController().configuration["enabled"] is False
-                or task == class_names.PEC_AND_DOWNLOAD_EML
-                and PecController().configuration["enabled"] is False
-                or task == class_names.SSLKEYLOG
-                and NetworkToolController().configuration["ssl_keylog"] is False
-                or task == class_names.SSLCERTIFICATE
-                and NetworkToolController().configuration["ssl_certificate"] is False
-                or task == class_names.HEADERS
-                and NetworkToolController().configuration["headers"] is False
-                or task == class_names.WHOIS
-                and NetworkToolController().configuration["whois"] is False
-                or task == class_names.NSLOOKUP
-                and NetworkToolController().configuration["nslookup"] is False
-                or task == class_names.TRACEROUTE
-                and NetworkToolController().configuration["traceroute"] is False
-            ):
-                _tasks.remove(task)
-
-        return _tasks
 
     def init_tasks(self, task_list, logger, progress_bar, status_bar):
         for key in self.class_names_modules.keys():

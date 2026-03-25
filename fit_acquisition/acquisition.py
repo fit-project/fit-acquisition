@@ -17,6 +17,17 @@ from fit_common.gui.utils import State
 from fit_configurations.controller.tabs.network.network_check import (
     NetworkCheckController,
 )
+from fit_configurations.controller.tabs.network.network_tool import (
+    NetworkToolController,
+)
+from fit_configurations.controller.tabs.packet_capture.packet_capture import (
+    PacketCaptureController,
+)
+from fit_configurations.controller.tabs.pec.pec import PecController
+from fit_configurations.controller.tabs.screen_recorder.screen_recorder import (
+    ScreenRecorderController,
+)
+from fit_configurations.controller.tabs.timestamp.timestamp import TimestampController
 from PySide6.QtCore import QObject, Signal
 from shiboken6 import isValid
 
@@ -177,6 +188,35 @@ class Acquisition(QObject):
         if self.__progress_bar:
             self.__progress_bar.setValue(value)
 
+    def __remove_disable_tasks(self, tasks) -> list:
+        _tasks = tasks.copy()
+        for task in tasks:
+            if (
+                task == class_names.PACKETCAPTURE
+                and PacketCaptureController().configuration["enabled"] is False
+                or task == class_names.SCREENRECORDER
+                and ScreenRecorderController().configuration["enabled_video"] is False
+                or task == class_names.TIMESTAMP
+                and TimestampController().configuration["enabled"] is False
+                or task == class_names.PEC_AND_DOWNLOAD_EML
+                and PecController().configuration["enabled"] is False
+                or task == class_names.SSLKEYLOG
+                and NetworkToolController().configuration["ssl_keylog"] is False
+                or task == class_names.SSLCERTIFICATE
+                and NetworkToolController().configuration["ssl_certificate"] is False
+                or task == class_names.HEADERS
+                and NetworkToolController().configuration["headers"] is False
+                or task == class_names.WHOIS
+                and NetworkToolController().configuration["whois"] is False
+                or task == class_names.NSLOOKUP
+                and NetworkToolController().configuration["nslookup"] is False
+                or task == class_names.TRACEROUTE
+                and NetworkToolController().configuration["traceroute"] is False
+            ):
+                _tasks.remove(task)
+
+        return _tasks
+
     def load_tasks(self):
         self.log_confing = LogConfigTools()
 
@@ -192,6 +232,8 @@ class Acquisition(QObject):
             + list(self.__post_tasks)
             + self.external_tasks
         )
+
+        all_tasks = self.__remove_disable_tasks(all_tasks)
 
         self.tasks_manager.init_tasks(
             all_tasks, self.logger, self.__progress_bar, self.__status_bar
