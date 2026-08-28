@@ -9,6 +9,7 @@ from fit_acquisition.tasks.infinite_loop import packet_capture as packet_module
 
 @pytest.mark.integration
 def test_packet_capture_worker_start_and_stop(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(packet_module.sys, "platform", "darwin")
     worker = packet_module.PacketCaptureWorker()
     worker.options = {
         "acquisition_directory": "/tmp/acq",

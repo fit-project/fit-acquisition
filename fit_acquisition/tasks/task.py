@@ -61,6 +61,7 @@ class Task(QObject):
 
         self.worker = None
         self.worker_thread = None
+        self._privilege_authorization = None
 
         if worker_class:
             self.worker_thread = QThread()
@@ -73,6 +74,16 @@ class Task(QObject):
             self.worker.error.connect(self._handle_error)
 
         self.destroyed.connect(lambda: self._destroyed_handler(self.__dict__))
+
+    @property
+    def privilege_authorization(self):
+        return self._privilege_authorization
+
+    @privilege_authorization.setter
+    def privilege_authorization(self, value):
+        self._privilege_authorization = value
+        if self.worker is not None:
+            self.worker.privilege_authorization = value
 
     def is_active(self):
         return self.state != State.COMPLETED
@@ -210,6 +221,8 @@ class Task(QObject):
         self._finished(Status.FAILURE, error.get("details"))
 
     def _destroyed_handler(self, _dict):
+        if self.worker and hasattr(self.worker, "cancel"):
+            self.worker.cancel()
         if self.worker_thread and isValid(self.worker_thread):
             if self.worker_thread.isRunning():
                 self.worker_thread.quit()

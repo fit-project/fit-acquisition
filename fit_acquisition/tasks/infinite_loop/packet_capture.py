@@ -9,6 +9,8 @@
 
 import logging
 import os
+import sys
+from pathlib import Path
 
 import scapy.all as scapy
 from fit_common.core import debug, get_context, log_exception
@@ -18,6 +20,10 @@ from fit_configurations.controller.tabs.packet_capture.packet_capture import (
 )
 from PySide6.QtCore import QEventLoop, QTimer
 
+from fit_acquisition.privileged.runner import (
+    PrivilegedProcessError,
+    PrivilegedRunner,
+)
 from fit_acquisition.tasks.task import Task
 from fit_acquisition.tasks.task_worker import TaskWorker
 
@@ -30,6 +36,7 @@ class PacketCaptureWorker(TaskWorker):
         super().__init__()
         self.output_file = None
         self.sniffer = None
+        self.privileged_runner = None
 
     @TaskWorker.options.getter
     def options(self):
@@ -44,11 +51,27 @@ class PacketCaptureWorker(TaskWorker):
 
     def start(self):
         try:
+            if sys.platform == "linux":
+                if self.privilege_authorization is None:
+                    raise PrivilegedProcessError(
+                        "authorization_unavailable",
+                        "Privilege authorization is unavailable",
+                    )
+                self.privilege_authorization.require("packet_capture")
+                self.privileged_runner = PrivilegedRunner()
+                self.privileged_runner.start("packet-capture", [])
+                self.started.emit()
+                return
             if self.sniffer is None:
                 self.sniffer = scapy.AsyncSniffer()
             self.sniffer.start()
             self.started.emit()
         except Exception as e:
+            details = (
+                f"{e.code}: {e.details}"
+                if isinstance(e, PrivilegedProcessError)
+                else str(e)
+            )
             log_exception(e, context=get_context(self))
             debug(
                 "Start packet capture failed",
@@ -59,12 +82,24 @@ class PacketCaptureWorker(TaskWorker):
                 {
                     "title": self.translations["PACKET_CAPTURE"],
                     "message": self.translations["PACKET_CAPTURE_ERROR"],
-                    "details": str(e),
+                    "details": details,
                 }
             )
 
     def stop(self):
         try:
+            if sys.platform == "linux" and self.privileged_runner is not None:
+                self.privileged_runner.cancel()
+                pcap = self.privileged_runner.wait(timeout=10)
+                output = Path(self.options["output_file"])
+                base = Path(self.options["acquisition_directory"]).resolve()
+                resolved = output.resolve()
+                if resolved.parent != base or output.name != self.options["filename"]:
+                    raise ValueError("Invalid packet capture output path")
+                resolved.write_bytes(pcap)
+                self.finished.emit()
+                self.privileged_runner = None
+                return
             if self.sniffer is None:
                 self.finished.emit()
                 return
@@ -76,6 +111,11 @@ class PacketCaptureWorker(TaskWorker):
             self.finished.emit()
             self.sniffer = None
         except Exception as e:
+            details = (
+                f"{e.code}: {e.details}"
+                if isinstance(e, PrivilegedProcessError)
+                else str(e)
+            )
             log_exception(e, context=get_context(self))
             debug(
                 "Stop packet capture failed",
@@ -86,9 +126,13 @@ class PacketCaptureWorker(TaskWorker):
                 {
                     "title": self.translations["PACKET_CAPTURE"],
                     "message": self.translations["PACKET_CAPTURE_ERROR"],
-                    "details": str(e),
+                    "details": details,
                 }
             )
+
+    def cancel(self):
+        if self.privileged_runner is not None:
+            self.privileged_runner.cancel()
 
 
 class TaskPacketCapture(Task):

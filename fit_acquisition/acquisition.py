@@ -36,6 +36,7 @@ from fit_acquisition.lang import load_translations
 from fit_acquisition.logger import LogConfigTools
 from fit_acquisition.logger_names import LoggerName
 from fit_acquisition.post import PostAcquisition
+from fit_acquisition.privileged.authorization import PrivilegeAuthorization
 from fit_acquisition.tasks.tasks_manager import TasksManager
 
 
@@ -53,6 +54,7 @@ class Acquisition(QObject):
     post_acquisition_finished = Signal()
     start_tasks_finished = Signal()
     stop_tasks_finished = Signal()
+    privilege_requested = Signal(object)
 
     def __init__(
         self,
@@ -92,6 +94,8 @@ class Acquisition(QObject):
         ]
 
         self.tasks_manager = TasksManager()
+        self._privilege_authorization = PrivilegeAuthorization()
+        self._privilege_authorization.requested.connect(self.privilege_requested.emit)
 
         core_task_packages = [
             "fit_acquisition.tasks.infinite_loop",
@@ -218,6 +222,7 @@ class Acquisition(QObject):
         return _tasks
 
     def load_tasks(self):
+        self._privilege_authorization.reset()
         self.log_confing = LogConfigTools()
 
         if self.logger.name == LoggerName.SCRAPER_WEB.value:
@@ -238,8 +243,21 @@ class Acquisition(QObject):
         self.tasks_manager.init_tasks(
             all_tasks, self.logger, self.__progress_bar, self.__status_bar
         )
+        for task in self.tasks_manager.get_tasks():
+            task.privilege_authorization = self._privilege_authorization
+
+    def respond_to_privilege_request(self, request_id: str, approved: bool) -> bool:
+        """Resolve the pending Linux privilege request exactly once."""
+        return self._privilege_authorization.respond(request_id, approved)
+
+    def approve_privilege_request(self, request_id: str) -> bool:
+        return self.respond_to_privilege_request(request_id, True)
+
+    def reject_privilege_request(self, request_id: str) -> bool:
+        return self.respond_to_privilege_request(request_id, False)
 
     def unload_tasks(self):
+        self._privilege_authorization.cancel()
         for task in self.tasks_manager.get_tasks():
             if isValid(task):
                 task.deleteLater()

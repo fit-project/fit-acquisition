@@ -7,18 +7,28 @@
 # -----
 ######
 
+import json
 import os
+import sys
 from urllib.parse import urlparse
 
 import scapy.all as scapy
 from fit_common.core import debug, get_context, log_exception
 from fit_common.gui.utils import Status
 
+from fit_acquisition.privileged.runner import (
+    PrivilegedProcessError,
+    PrivilegedRunner,
+)
 from fit_acquisition.tasks.task import Task
 from fit_acquisition.tasks.task_worker import TaskWorker
 
 
 class TracerouteWorker(TaskWorker):
+
+    def __init__(self):
+        super().__init__()
+        self.privileged_runner = None
 
     def __traceroute(self, url, filename):
         try:
@@ -29,6 +39,27 @@ class TracerouteWorker(TaskWorker):
                 raise ValueError(self.translations["MALFORMED_URL_ERROR"])
 
             netloc = netloc.split(":")[0]
+
+            if sys.platform == "linux":
+                if self.privilege_authorization is None:
+                    raise PrivilegedProcessError(
+                        "authorization_unavailable",
+                        "Privilege authorization is unavailable",
+                    )
+                self.privilege_authorization.require("traceroute")
+                self.privileged_runner = PrivilegedRunner()
+                self.privileged_runner.start("traceroute", [netloc])
+                payload = self.privileged_runner.wait(timeout=20)
+                rows = json.loads(payload.decode("utf-8"))
+                with open(filename, "w") as f:
+                    for row in rows:
+                        f.write(
+                            f"TTL={int(row['ttl'])} IP={row['ip']} "
+                            f"TCP_response={bool(row['tcp_response'])}\n"
+                        )
+                self.privileged_runner = None
+                self.finished.emit()
+                return
 
             with open(filename, "w") as f:
                 ans, unans = scapy.sr(
@@ -48,6 +79,11 @@ class TracerouteWorker(TaskWorker):
             self.finished.emit()
 
         except Exception as e:
+            details = (
+                f"{e.code}: {e.details}"
+                if isinstance(e, PrivilegedProcessError)
+                else str(e)
+            )
             log_exception(e, context=get_context(self))
             debug(
                 "Start traceroute failed",
@@ -58,9 +94,13 @@ class TracerouteWorker(TaskWorker):
                 {
                     "title": self.translations["TRACEROUTE_ERROR_TITLE"],
                     "message": self.translations["TRACEROUTE_EXECUTION_ERROR"],
-                    "details": str(e),
+                    "details": details,
                 }
             )
+
+    def cancel(self):
+        if self.privileged_runner is not None:
+            self.privileged_runner.cancel()
 
     def start(self):
         self.started.emit()

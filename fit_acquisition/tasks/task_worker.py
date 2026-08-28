@@ -10,6 +10,7 @@ class TaskWorker(QObject):
     def __init__(self):
         QObject.__init__(self)
         self.__translations = load_translations()
+        self.privilege_authorization = None
 
     @property
     def options(self):

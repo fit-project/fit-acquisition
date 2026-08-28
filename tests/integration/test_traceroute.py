@@ -9,6 +9,7 @@ from fit_acquisition.tasks.network_tools import traceroute as traceroute_module
 
 @pytest.mark.integration
 def test_traceroute_worker_writes_lines(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(traceroute_module.sys, "platform", "darwin")
     worker = traceroute_module.TracerouteWorker()
     worker.options = {
         "url": "https://example.org",
