@@ -180,7 +180,7 @@ class ScreenRecorderWorker(TaskWorker):
 
             displays.append(
                 {
-                    "id": int(display_id),
+                    "id": display_id,
                     "origin_x": int(entries.get(f"{prefix}origin_x", "0")),
                     "origin_y": int(entries.get(f"{prefix}origin_y", "0")),
                     "width": int(entries.get(f"{prefix}width", "0")),
