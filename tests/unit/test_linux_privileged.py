@@ -297,6 +297,11 @@ def test_privileged_traceroute_opens_socket_before_ready(
     events = []
 
     class Socket:
+        def sr(self, _packets, **kwargs):
+            events.append("socket-sr")
+            assert kwargs == {"timeout": 10, "verbose": False}
+            return [], []
+
         def close(self):
             events.append("socket-closed")
 
@@ -307,18 +312,98 @@ def test_privileged_traceroute_opens_socket_before_ready(
         lambda: (events.append("socket-opened") or socket),
     )
 
-    def sr(_packets, **kwargs):
-        events.append("sr")
-        assert kwargs["opened_socket"] is socket
-        return [], []
-
-    monkeypatch.setattr(privileged_traceroute_module.scapy, "sr", sr)
+    monkeypatch.setattr(
+        privileged_traceroute_module.scapy,
+        "sr",
+        lambda *_args, **_kwargs: pytest.fail("scapy.sr must not be used"),
+    )
     rows = privileged_traceroute_module.run_traceroute(
         "127.0.0.1", lambda: events.append("ready")
     )
 
     assert rows == []
-    assert events == ["socket-opened", "ready", "sr", "socket-closed"]
+    assert events == ["socket-opened", "ready", "socket-sr", "socket-closed"]
+
+
+@pytest.mark.unit
+def test_privileged_traceroute_closes_socket_when_sr_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events = []
+
+    class Socket:
+        def sr(self, _packets, **_kwargs):
+            events.append("socket-sr")
+            raise RuntimeError("send failed")
+
+        def close(self):
+            events.append("socket-closed")
+
+    monkeypatch.setattr(
+        privileged_traceroute_module.scapy.conf, "L3socket", Socket
+    )
+
+    with pytest.raises(RuntimeError, match="send failed"):
+        privileged_traceroute_module.run_traceroute(
+            "127.0.0.1", lambda: events.append("ready")
+        )
+
+    assert events == ["ready", "socket-sr", "socket-closed"]
+
+
+@pytest.mark.unit
+def test_privileged_traceroute_does_not_report_ready_when_socket_open_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events = []
+
+    def fail_to_open():
+        events.append("socket-open-failed")
+        raise OSError("permission denied")
+
+    monkeypatch.setattr(
+        privileged_traceroute_module.scapy.conf, "L3socket", fail_to_open
+    )
+
+    with pytest.raises(OSError, match="permission denied"):
+        privileged_traceroute_module.run_traceroute(
+            "127.0.0.1", lambda: events.append("ready")
+        )
+
+    assert events == ["socket-open-failed"]
+
+
+@pytest.mark.unit
+def test_privileged_traceroute_converts_answers_to_json_rows(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Socket:
+        def sr(self, _packets, **_kwargs):
+            return [
+                (
+                    SimpleNamespace(ttl=3),
+                    SimpleNamespace(src="192.0.2.1", payload=scapy_tcp),
+                ),
+                (
+                    SimpleNamespace(ttl=4),
+                    SimpleNamespace(src="198.51.100.2", payload=object()),
+                ),
+            ], []
+
+        def close(self):
+            return None
+
+    scapy_tcp = privileged_traceroute_module.scapy.TCP()
+    monkeypatch.setattr(
+        privileged_traceroute_module.scapy.conf, "L3socket", Socket
+    )
+
+    rows = privileged_traceroute_module.run_traceroute("example.org", lambda: None)
+
+    assert rows == [
+        {"ttl": 3, "ip": "192.0.2.1", "tcp_response": True},
+        {"ttl": 4, "ip": "198.51.100.2", "tcp_response": False},
+    ]
 
 
 class _Approved:

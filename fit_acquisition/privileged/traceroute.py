@@ -15,11 +15,10 @@ def run_traceroute(
     socket = scapy.conf.L3socket()
     try:
         ready()
-        answered, _ = scapy.sr(
+        answered, _ = socket.sr(
             packets,
             timeout=10,
             verbose=False,
-            opened_socket=socket,
         )
     finally:
         socket.close()
