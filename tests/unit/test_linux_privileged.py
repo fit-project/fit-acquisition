@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 import threading
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -9,7 +11,9 @@ import pytest
 from PySide6.QtCore import Qt
 
 from fit_acquisition.privileged import authorization as authorization_module
+from fit_acquisition.privileged import packet_capture as privileged_packet_module
 from fit_acquisition.privileged import runner as runner_module
+from fit_acquisition.privileged import traceroute as privileged_traceroute_module
 from fit_acquisition.privileged.authorization import PrivilegeAuthorization, PrivilegeDeniedError
 from fit_acquisition.privileged.runner import PrivilegedProcessError, PrivilegedRunner
 from fit_acquisition.tasks.infinite_loop import packet_capture as packet_module
@@ -120,48 +124,201 @@ def test_runner_uses_argv_and_never_shell(monkeypatch: pytest.MonkeyPatch, tmp_p
     monkeypatch.setattr(runner_module.shutil, "which", lambda _: "/usr/bin/sudo")
     calls = []
 
-    class Process:
-        returncode = 0
-        pid = 123
-        def communicate(self, timeout=None):
-            return b"ok", b""
-        def poll(self):
-            return 0
+    original_popen = subprocess.Popen
 
-    monkeypatch.setattr(runner_module.subprocess, "Popen", lambda argv, **kwargs: (calls.append((argv, kwargs)) or Process()))
+    def popen(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return original_popen(
+            [
+                sys.executable,
+                "-c",
+                "import sys; "
+                "sys.stderr.write('diagnostic\\nFIT_PRIVILEGED_READY\\n'); "
+                "sys.stderr.flush(); sys.stdout.buffer.write(b'ok')",
+            ],
+            **kwargs,
+        )
+
+    monkeypatch.setattr(runner_module.subprocess, "Popen", popen)
     runner = PrivilegedRunner()
     runner.start("traceroute", ["example.org"])
     assert runner.wait() == b"ok"
     assert calls[0][0][:2] == ["/usr/bin/sudo", "-A"]
     assert calls[0][1]["shell"] is False
+    assert calls[0][1]["start_new_session"] is True
+    assert runner._diagnostics() == "diagnostic"
 
 
 @pytest.mark.unit
-def test_runner_failure_and_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
-    failed = SimpleNamespace(returncode=2, communicate=lambda timeout=None: (b"", b"crash"))
-    runner = PrivilegedRunner()
-    runner._process = failed
-    with pytest.raises(PrivilegedProcessError, match="crash"):
-        runner.wait()
+def test_runner_process_exit_before_ready_preserves_stderr(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _mock_privileged_process(
+        monkeypatch,
+        tmp_path,
+        "import sys; sys.stderr.write('sudo: authentication failed\\n'); sys.exit(1)",
+    )
+    with pytest.raises(PrivilegedProcessError, match="authentication failed") as exc:
+        PrivilegedRunner().start("traceroute", ["example.org"])
+    assert exc.value.code == "authentication_cancelled"
 
-    class TimedOut:
-        pid = 123
-        returncode = None
-        calls = 0
-        def communicate(self, timeout=None):
-            self.calls += 1
-            if self.calls == 1:
-                raise subprocess.TimeoutExpired("cmd", timeout)
-            return b"", b""
-        def poll(self):
+
+@pytest.mark.unit
+def test_runner_clean_exit_without_ready_is_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _mock_privileged_process(monkeypatch, tmp_path, "pass")
+    with pytest.raises(PrivilegedProcessError) as exc:
+        PrivilegedRunner().start("traceroute", ["example.org"])
+    assert exc.value.code == "readiness_missing"
+
+
+@pytest.mark.unit
+def test_runner_readiness_timeout_cleans_process_group(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _mock_privileged_process(monkeypatch, tmp_path, "import time; time.sleep(60)")
+    original_killpg = runner_module.os.killpg
+    signals = []
+
+    def killpg(pid, sig):
+        signals.append(sig)
+        original_killpg(pid, sig)
+
+    monkeypatch.setattr(runner_module.os, "killpg", killpg)
+    runner = PrivilegedRunner()
+    with pytest.raises(PrivilegedProcessError) as exc:
+        runner.start("traceroute", ["example.org"], readiness_timeout=0.05)
+    assert exc.value.code == "readiness_timeout"
+    assert runner_module.signal.SIGTERM in signals
+    assert runner.active is False
+
+
+@pytest.mark.unit
+def test_runner_cancel_interrupts_readiness_and_is_idempotent(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _mock_privileged_process(monkeypatch, tmp_path, "import time; time.sleep(60)")
+    runner = PrivilegedRunner()
+    errors = []
+    thread = threading.Thread(
+        target=lambda: _capture_runner_start_error(runner, errors)
+    )
+    thread.start()
+    deadline = time.monotonic() + 2
+    while not runner.active and time.monotonic() < deadline:
+        threading.Event().wait(0.01)
+    runner.cancel()
+    runner.cancel()
+    thread.join(timeout=2)
+    assert not thread.is_alive()
+    assert errors and errors[0].code == "process_failed"
+    assert runner.active is False
+
+
+@pytest.mark.unit
+def test_runner_wait_timeout_cleans_ready_process(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _mock_privileged_process(
+        monkeypatch,
+        tmp_path,
+        "import sys, time; sys.stderr.write('FIT_PRIVILEGED_READY\\n'); "
+        "sys.stderr.flush(); time.sleep(60)",
+    )
+    runner = PrivilegedRunner()
+    runner.start("traceroute", ["example.org"])
+    with pytest.raises(PrivilegedProcessError) as exc:
+        runner.wait(timeout=0.05)
+    assert exc.value.code == "timeout"
+    assert runner.active is False
+
+
+def _capture_runner_start_error(
+    runner: PrivilegedRunner, errors: list[PrivilegedProcessError]
+) -> None:
+    try:
+        runner.start("traceroute", ["example.org"])
+    except PrivilegedProcessError as error:
+        errors.append(error)
+
+
+def _mock_privileged_process(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, script: str
+) -> None:
+    askpass = tmp_path / "askpass"
+    askpass.write_text("helper")
+    monkeypatch.setenv("FIT_LINUX_SUDO_ASKPASS", str(askpass))
+    monkeypatch.setattr(runner_module.sys, "platform", "linux")
+    monkeypatch.setattr(runner_module.shutil, "which", lambda _: "/usr/bin/sudo")
+    original_popen = subprocess.Popen
+    monkeypatch.setattr(
+        runner_module.subprocess,
+        "Popen",
+        lambda _argv, **kwargs: original_popen(
+            [sys.executable, "-c", script], **kwargs
+        ),
+    )
+
+
+@pytest.mark.unit
+def test_privileged_packet_capture_reports_ready_after_sniffer_start(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events = []
+
+    class Sniffer:
+        results = []
+        def start(self):
+            events.append("sniffer-started")
+        def stop(self):
+            events.append("sniffer-stopped")
+
+    class ImmediateEvent:
+        def set(self):
+            return None
+        def wait(self):
             return None
 
-    timed = TimedOut()
-    runner._process = timed
-    monkeypatch.setattr(runner, "cancel", lambda: None)
-    with pytest.raises(PrivilegedProcessError) as exc:
-        runner.wait(timeout=1)
-    assert exc.value.code == "timeout"
+    monkeypatch.setattr(privileged_packet_module.scapy, "AsyncSniffer", Sniffer)
+    monkeypatch.setattr(privileged_packet_module.scapy, "wrpcap", lambda *_: None)
+    monkeypatch.setattr(privileged_packet_module.threading, "Event", ImmediateEvent)
+    monkeypatch.setattr(privileged_packet_module.signal, "signal", lambda *_: None)
+
+    privileged_packet_module.capture_to_stdout(lambda: events.append("ready"))
+
+    assert events == ["sniffer-started", "ready", "sniffer-stopped"]
+
+
+@pytest.mark.unit
+def test_privileged_traceroute_opens_socket_before_ready(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events = []
+
+    class Socket:
+        def close(self):
+            events.append("socket-closed")
+
+    socket = Socket()
+    monkeypatch.setattr(
+        privileged_traceroute_module.scapy.conf,
+        "L3socket",
+        lambda: (events.append("socket-opened") or socket),
+    )
+
+    def sr(_packets, **kwargs):
+        events.append("sr")
+        assert kwargs["opened_socket"] is socket
+        return [], []
+
+    monkeypatch.setattr(privileged_traceroute_module.scapy, "sr", sr)
+    rows = privileged_traceroute_module.run_traceroute(
+        "127.0.0.1", lambda: events.append("ready")
+    )
+
+    assert rows == []
+    assert events == ["socket-opened", "ready", "sr", "socket-closed"]
 
 
 class _Approved:
@@ -174,28 +331,93 @@ class _Approved:
 @pytest.mark.unit
 def test_linux_packet_capture_requests_and_stops(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(packet_module.sys, "platform", "linux")
-    runner = SimpleNamespace(start=lambda action, args: None, cancel=lambda: None, wait=lambda timeout: b"pcap")
+    events = []
+
+    pcap = b"\xd4\xc3\xb2\xa1" + (b"\x00" * 20)
+
+    class Runner:
+        def start(self, action, args):
+            assert events == []
+            events.append("ready")
+        def cancel(self):
+            events.append("cancel")
+        def wait(self, timeout):
+            return pcap
+
+    runner = Runner()
     monkeypatch.setattr(packet_module, "PrivilegedRunner", lambda: runner)
     worker = packet_module.PacketCaptureWorker()
     auth = _Approved()
     worker.privilege_authorization = auth
     worker.options = {"acquisition_directory": str(tmp_path), "filename": "capture.pcap"}
+    worker.started.connect(lambda: events.append("started"))
     worker.start()
     worker.stop()
+    assert events[:2] == ["ready", "started"]
     assert auth.operations == ["packet_capture"]
-    assert (tmp_path / "capture.pcap").read_bytes() == b"pcap"
+    assert (tmp_path / "capture.pcap").read_bytes() == pcap
 
 
 @pytest.mark.unit
 def test_linux_traceroute_requests_and_writes_user_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(traceroute_module.sys, "platform", "linux")
     payload = b'[{"ttl": 2, "ip": "1.2.3.4", "tcp_response": true}]'
-    runner = SimpleNamespace(start=lambda action, args: None, wait=lambda timeout: payload, cancel=lambda: None)
+    events = []
+
+    class Runner:
+        def start(self, action, args):
+            assert events == []
+            events.append("ready")
+        def wait(self, timeout):
+            return payload
+        def cancel(self):
+            events.append("cancel")
+
+    runner = Runner()
     monkeypatch.setattr(traceroute_module, "PrivilegedRunner", lambda: runner)
     worker = traceroute_module.TracerouteWorker()
     auth = _Approved()
     worker.privilege_authorization = auth
     worker.options = {"url": "https://example.org", "acquisition_directory": str(tmp_path)}
+    worker.started.connect(lambda: events.append("started"))
     worker.start()
+    assert events[:2] == ["ready", "started"]
     assert auth.operations == ["traceroute"]
     assert (tmp_path / "traceroute.txt").read_text() == "TTL=2 IP=1.2.3.4 TCP_response=True\n"
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("worker_module, worker_class", [
+    (packet_module, packet_module.PacketCaptureWorker),
+    (traceroute_module, traceroute_module.TracerouteWorker),
+])
+def test_linux_worker_start_failure_never_emits_started(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    worker_module,
+    worker_class,
+) -> None:
+    monkeypatch.setattr(worker_module.sys, "platform", "linux")
+
+    class FailedRunner:
+        def start(self, action, args):
+            raise PrivilegedProcessError("process_failed", "sudo failed")
+        def cancel(self):
+            return None
+
+    monkeypatch.setattr(worker_module, "PrivilegedRunner", FailedRunner)
+    worker = worker_class()
+    worker.privilege_authorization = _Approved()
+    worker.options = (
+        {"acquisition_directory": str(tmp_path), "filename": "capture.pcap"}
+        if worker_module is packet_module
+        else {"url": "https://example.org", "acquisition_directory": str(tmp_path)}
+    )
+    started = []
+    errors = []
+    worker.started.connect(lambda: started.append(True))
+    worker.error.connect(errors.append)
+    worker.start()
+    assert started == []
+    assert errors and "sudo failed" in errors[0]["details"]
+    assert worker.privileged_runner is None

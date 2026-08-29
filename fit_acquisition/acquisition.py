@@ -112,6 +112,7 @@ class Acquisition(QObject):
 
         self.start_tasks = list()
         self._start_emitted = False
+        self._pending_start_tasks = set()
 
         self.stop_tasks = list()
         self._stop_emitted = False
@@ -263,27 +264,34 @@ class Acquisition(QObject):
                 task.deleteLater()
         self.tasks_manager.clear_tasks()
         self._start_emitted = False
+        self._pending_start_tasks.clear()
         self._stop_emitted = False
 
     def run_start_tasks(self):
         tasks = self.tasks_manager.get_tasks_from_class_name(self.start_tasks)
 
         if len(tasks) == 0:
-            self.start_tasks_finished.emit()
+            if not self._start_emitted:
+                self._start_emitted = True
+                self.start_tasks_finished.emit()
         else:
+            self._pending_start_tasks = set(tasks)
             for task in tasks:
-                task.started.connect(self.__started_task_handler)
+                task.started.connect(
+                    lambda task=task: self.__start_task_settled_handler(task)
+                )
+                task.finished.connect(
+                    lambda task=task: self.__start_task_settled_handler(task)
+                )
                 task.options = self.options
                 task.increment = self.calculate_increment()
                 task.start()
 
-    def __started_task_handler(self):
-        if (
-            not self._start_emitted
-            and self.tasks_manager.are_task_names_in_the_same_state(
-                self.start_tasks, State.STARTED
-            )
-        ):
+    def __start_task_settled_handler(self, task):
+        if task.state not in (State.STARTED, State.COMPLETED):
+            return
+        self._pending_start_tasks.discard(task)
+        if not self._start_emitted and not self._pending_start_tasks:
             self._start_emitted = True
             self.start_tasks_finished.emit()
 

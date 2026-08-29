@@ -8,6 +8,13 @@ import json
 import socket
 import sys
 
+from .runner import READY_MARKER
+
+
+def _report_ready() -> None:
+    sys.stderr.buffer.write(READY_MARKER + b"\n")
+    sys.stderr.buffer.flush()
+
 
 def _destination(value: str) -> str:
     if not value or len(value) > 253 or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-:" for c in value):
@@ -35,11 +42,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.action == "packet-capture":
         from .packet_capture import capture_to_stdout
 
-        capture_to_stdout()
+        capture_to_stdout(_report_ready)
     elif args.action == "traceroute":
         from .traceroute import run_traceroute
 
-        json.dump(run_traceroute(args.destination), sys.stdout)
+        json.dump(run_traceroute(args.destination, _report_ready), sys.stdout)
     return 0
 
 

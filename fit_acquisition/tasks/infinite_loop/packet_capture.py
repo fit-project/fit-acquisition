@@ -29,6 +29,13 @@ from fit_acquisition.tasks.task_worker import TaskWorker
 
 logging.getLogger("scapy").setLevel(logging.CRITICAL)
 
+_PCAP_MAGIC_NUMBERS = {
+    b"\xa1\xb2\xc3\xd4",
+    b"\xd4\xc3\xb2\xa1",
+    b"\xa1\xb2\x3c\x4d",
+    b"\x4d\x3c\xb2\xa1",
+}
+
 
 class PacketCaptureWorker(TaskWorker):
 
@@ -85,12 +92,20 @@ class PacketCaptureWorker(TaskWorker):
                     "details": details,
                 }
             )
+            if self.privileged_runner is not None:
+                self.privileged_runner.cancel()
+                self.privileged_runner = None
 
     def stop(self):
         try:
             if sys.platform == "linux" and self.privileged_runner is not None:
                 self.privileged_runner.cancel()
                 pcap = self.privileged_runner.wait(timeout=10)
+                if len(pcap) < 24 or pcap[:4] not in _PCAP_MAGIC_NUMBERS:
+                    raise PrivilegedProcessError(
+                        "invalid_output",
+                        "Privileged packet capture returned an invalid PCAP",
+                    )
                 output = Path(self.options["output_file"])
                 base = Path(self.options["acquisition_directory"]).resolve()
                 resolved = output.resolve()
@@ -129,6 +144,9 @@ class PacketCaptureWorker(TaskWorker):
                     "details": details,
                 }
             )
+            if self.privileged_runner is not None:
+                self.privileged_runner.cancel()
+                self.privileged_runner = None
 
     def cancel(self):
         if self.privileged_runner is not None:

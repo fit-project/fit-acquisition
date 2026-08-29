@@ -49,6 +49,7 @@ class TracerouteWorker(TaskWorker):
                 self.privilege_authorization.require("traceroute")
                 self.privileged_runner = PrivilegedRunner()
                 self.privileged_runner.start("traceroute", [netloc])
+                self.started.emit()
                 payload = self.privileged_runner.wait(timeout=20)
                 rows = json.loads(payload.decode("utf-8"))
                 with open(filename, "w") as f:
@@ -97,13 +98,17 @@ class TracerouteWorker(TaskWorker):
                     "details": details,
                 }
             )
+            if self.privileged_runner is not None:
+                self.privileged_runner.cancel()
+                self.privileged_runner = None
 
     def cancel(self):
         if self.privileged_runner is not None:
             self.privileged_runner.cancel()
 
     def start(self):
-        self.started.emit()
+        if sys.platform != "linux":
+            self.started.emit()
         self.__traceroute(
             self.options["url"],
             os.path.join(self.options["acquisition_directory"], "traceroute.txt"),
