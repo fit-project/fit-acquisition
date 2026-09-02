@@ -34,6 +34,8 @@ def _parser() -> argparse.ArgumentParser:
     sub.add_parser("packet-capture")
     traceroute = sub.add_parser("traceroute")
     traceroute.add_argument("destination", type=_destination)
+    broker = sub.add_parser("broker")
+    broker.add_argument("acquisition_directory")
     return parser
 
 
@@ -47,6 +49,10 @@ def main(argv: list[str] | None = None) -> int:
         from .traceroute import run_traceroute
 
         json.dump(run_traceroute(args.destination, _report_ready), sys.stdout)
+    elif args.action == "broker":
+        from .broker import run_broker
+
+        return run_broker(args.acquisition_directory)
     return 0
 
 

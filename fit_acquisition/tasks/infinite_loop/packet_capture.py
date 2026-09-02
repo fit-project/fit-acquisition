@@ -20,10 +20,7 @@ from fit_configurations.controller.tabs.packet_capture.packet_capture import (
 )
 from PySide6.QtCore import QEventLoop, QTimer
 
-from fit_acquisition.privileged.runner import (
-    PrivilegedProcessError,
-    PrivilegedRunner,
-)
+from fit_acquisition.privileged.runner import PrivilegedProcessError
 from fit_acquisition.tasks.task import Task
 from fit_acquisition.tasks.task_worker import TaskWorker
 
@@ -43,7 +40,6 @@ class PacketCaptureWorker(TaskWorker):
         super().__init__()
         self.output_file = None
         self.sniffer = None
-        self.privileged_runner = None
 
     @TaskWorker.options.getter
     def options(self):
@@ -65,9 +61,16 @@ class PacketCaptureWorker(TaskWorker):
                         "Privilege authorization is unavailable",
                     )
                 self.privilege_authorization.require("packet_capture")
-                self.privileged_runner = PrivilegedRunner()
-                self.privileged_runner.start("packet-capture", [])
-                self.started.emit()
+                if self.privileged_session is None:
+                    raise PrivilegedProcessError(
+                        "session_unavailable", "Privileged session is unavailable"
+                    )
+                self.privileged_session.request(
+                    "start_packet_capture",
+                    {"output_path": self.options["output_file"]},
+                    on_ready=self.started.emit,
+                    return_on_ready=True,
+                )
                 return
             if self.sniffer is None:
                 self.sniffer = scapy.AsyncSniffer()
@@ -92,28 +95,27 @@ class PacketCaptureWorker(TaskWorker):
                     "details": details,
                 }
             )
-            if self.privileged_runner is not None:
-                self.privileged_runner.cancel()
-                self.privileged_runner = None
 
     def stop(self):
         try:
-            if sys.platform == "linux" and self.privileged_runner is not None:
-                self.privileged_runner.cancel()
-                pcap = self.privileged_runner.wait(timeout=10)
-                if len(pcap) < 24 or pcap[:4] not in _PCAP_MAGIC_NUMBERS:
+            if sys.platform == "linux" and self.privileged_session is not None:
+                result = self.privileged_session.request(
+                    "stop_packet_capture",
+                    {"output_path": self.options["output_file"]},
+                    timeout=10,
+                )
+                output = Path(result["output_path"])
+                pcap_header = output.read_bytes()[:24]
+                if len(pcap_header) < 24 or pcap_header[:4] not in _PCAP_MAGIC_NUMBERS:
                     raise PrivilegedProcessError(
                         "invalid_output",
                         "Privileged packet capture returned an invalid PCAP",
                     )
-                output = Path(self.options["output_file"])
                 base = Path(self.options["acquisition_directory"]).resolve()
                 resolved = output.resolve()
                 if resolved.parent != base or output.name != self.options["filename"]:
                     raise ValueError("Invalid packet capture output path")
-                resolved.write_bytes(pcap)
                 self.finished.emit()
-                self.privileged_runner = None
                 return
             if self.sniffer is None:
                 self.finished.emit()
@@ -144,13 +146,9 @@ class PacketCaptureWorker(TaskWorker):
                     "details": details,
                 }
             )
-            if self.privileged_runner is not None:
-                self.privileged_runner.cancel()
-                self.privileged_runner = None
 
     def cancel(self):
-        if self.privileged_runner is not None:
-            self.privileged_runner.cancel()
+        return None
 
 
 class TaskPacketCapture(Task):

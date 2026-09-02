@@ -7,7 +7,6 @@
 # -----
 ######
 
-import json
 import os
 import sys
 from urllib.parse import urlparse
@@ -16,10 +15,7 @@ import scapy.all as scapy
 from fit_common.core import debug, get_context, log_exception
 from fit_common.gui.utils import Status
 
-from fit_acquisition.privileged.runner import (
-    PrivilegedProcessError,
-    PrivilegedRunner,
-)
+from fit_acquisition.privileged.runner import PrivilegedProcessError
 from fit_acquisition.tasks.task import Task
 from fit_acquisition.tasks.task_worker import TaskWorker
 
@@ -28,7 +24,6 @@ class TracerouteWorker(TaskWorker):
 
     def __init__(self):
         super().__init__()
-        self.privileged_runner = None
 
     def __traceroute(self, url, filename):
         try:
@@ -47,18 +42,22 @@ class TracerouteWorker(TaskWorker):
                         "Privilege authorization is unavailable",
                     )
                 self.privilege_authorization.require("traceroute")
-                self.privileged_runner = PrivilegedRunner()
-                self.privileged_runner.start("traceroute", [netloc])
-                self.started.emit()
-                payload = self.privileged_runner.wait(timeout=20)
-                rows = json.loads(payload.decode("utf-8"))
+                if self.privileged_session is None:
+                    raise PrivilegedProcessError(
+                        "session_unavailable", "Privileged session is unavailable"
+                    )
+                rows = self.privileged_session.request(
+                    "traceroute",
+                    {"destination": netloc},
+                    timeout=20,
+                    on_ready=self.started.emit,
+                )
                 with open(filename, "w") as f:
                     for row in rows:
                         f.write(
                             f"TTL={int(row['ttl'])} IP={row['ip']} "
                             f"TCP_response={bool(row['tcp_response'])}\n"
                         )
-                self.privileged_runner = None
                 self.finished.emit()
                 return
 
@@ -98,13 +97,9 @@ class TracerouteWorker(TaskWorker):
                     "details": details,
                 }
             )
-            if self.privileged_runner is not None:
-                self.privileged_runner.cancel()
-                self.privileged_runner = None
 
     def cancel(self):
-        if self.privileged_runner is not None:
-            self.privileged_runner.cancel()
+        return None
 
     def start(self):
         if sys.platform != "linux":

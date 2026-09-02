@@ -1,4 +1,5 @@
 from PySide6.QtCore import QObject, Signal
+
 from fit_acquisition.lang import load_translations
 
 
@@ -11,6 +12,7 @@ class TaskWorker(QObject):
         QObject.__init__(self)
         self.__translations = load_translations()
         self.privilege_authorization = None
+        self.privileged_session = None
 
     @property
     def options(self):

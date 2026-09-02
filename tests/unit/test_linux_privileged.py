@@ -420,25 +420,24 @@ def test_linux_packet_capture_requests_and_stops(monkeypatch: pytest.MonkeyPatch
 
     pcap = b"\xd4\xc3\xb2\xa1" + (b"\x00" * 20)
 
-    class Runner:
-        def start(self, action, args):
-            assert events == []
-            events.append("ready")
-        def cancel(self):
-            events.append("cancel")
-        def wait(self, timeout):
-            return pcap
+    class Session:
+        def request(self, operation, arguments, **kwargs):
+            events.append(operation)
+            if operation == "start_packet_capture":
+                kwargs["on_ready"]()
+                return None
+            Path(arguments["output_path"]).write_bytes(pcap)
+            return {"output_path": arguments["output_path"]}
 
-    runner = Runner()
-    monkeypatch.setattr(packet_module, "PrivilegedRunner", lambda: runner)
     worker = packet_module.PacketCaptureWorker()
     auth = _Approved()
     worker.privilege_authorization = auth
+    worker.privileged_session = Session()
     worker.options = {"acquisition_directory": str(tmp_path), "filename": "capture.pcap"}
     worker.started.connect(lambda: events.append("started"))
     worker.start()
     worker.stop()
-    assert events[:2] == ["ready", "started"]
+    assert events == ["start_packet_capture", "started", "stop_packet_capture"]
     assert auth.operations == ["packet_capture"]
     assert (tmp_path / "capture.pcap").read_bytes() == pcap
 
@@ -446,27 +445,22 @@ def test_linux_packet_capture_requests_and_stops(monkeypatch: pytest.MonkeyPatch
 @pytest.mark.unit
 def test_linux_traceroute_requests_and_writes_user_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(traceroute_module.sys, "platform", "linux")
-    payload = b'[{"ttl": 2, "ip": "1.2.3.4", "tcp_response": true}]'
     events = []
 
-    class Runner:
-        def start(self, action, args):
-            assert events == []
-            events.append("ready")
-        def wait(self, timeout):
-            return payload
-        def cancel(self):
-            events.append("cancel")
+    class Session:
+        def request(self, operation, arguments, **kwargs):
+            events.append(operation)
+            kwargs["on_ready"]()
+            return [{"ttl": 2, "ip": "1.2.3.4", "tcp_response": True}]
 
-    runner = Runner()
-    monkeypatch.setattr(traceroute_module, "PrivilegedRunner", lambda: runner)
     worker = traceroute_module.TracerouteWorker()
     auth = _Approved()
     worker.privilege_authorization = auth
+    worker.privileged_session = Session()
     worker.options = {"url": "https://example.org", "acquisition_directory": str(tmp_path)}
     worker.started.connect(lambda: events.append("started"))
     worker.start()
-    assert events[:2] == ["ready", "started"]
+    assert events == ["traceroute", "started"]
     assert auth.operations == ["traceroute"]
     assert (tmp_path / "traceroute.txt").read_text() == "TTL=2 IP=1.2.3.4 TCP_response=True\n"
 
@@ -484,15 +478,13 @@ def test_linux_worker_start_failure_never_emits_started(
 ) -> None:
     monkeypatch.setattr(worker_module.sys, "platform", "linux")
 
-    class FailedRunner:
-        def start(self, action, args):
+    class FailedSession:
+        def request(self, operation, arguments, **kwargs):
             raise PrivilegedProcessError("process_failed", "sudo failed")
-        def cancel(self):
-            return None
 
-    monkeypatch.setattr(worker_module, "PrivilegedRunner", FailedRunner)
     worker = worker_class()
     worker.privilege_authorization = _Approved()
+    worker.privileged_session = FailedSession()
     worker.options = (
         {"acquisition_directory": str(tmp_path), "filename": "capture.pcap"}
         if worker_module is packet_module
@@ -505,4 +497,3 @@ def test_linux_worker_start_failure_never_emits_started(
     worker.start()
     assert started == []
     assert errors and "sudo failed" in errors[0]["details"]
-    assert worker.privileged_runner is None

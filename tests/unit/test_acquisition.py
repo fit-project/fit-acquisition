@@ -45,6 +45,9 @@ class _TasksManagerStub:
     def clear_tasks(self) -> None:
         return None
 
+    def init_tasks(self, *_args) -> None:
+        return None
+
 
 class _StartTask:
     def __init__(self, state=State.INITIALIZATED) -> None:
@@ -185,3 +188,70 @@ def _make_start_acquisition(monkeypatch, tasks):
     acquisition.start_tasks = ["Task" for _ in tasks]
     acquisition.options = {"acquisition_directory": "/tmp"}
     return acquisition
+
+
+@pytest.mark.unit
+def test_acquisition_shares_and_closes_one_linux_privileged_session(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    sessions = []
+
+    class Session:
+        def __init__(self, directory=None):
+            self.directory = directory
+            self.closed = 0
+            self.started = False
+            sessions.append(self)
+
+        def close(self):
+            self.closed = 1
+
+    class TaskStub:
+        privilege_authorization = None
+        privileged_session = None
+
+        def deleteLater(self):
+            return None
+
+    task_one = TaskStub()
+    task_two = TaskStub()
+    manager = _StartTasksManager([task_one, task_two])
+    monkeypatch.setattr(acquisition_module.sys, "platform", "linux")
+    monkeypatch.setattr(acquisition_module, "PrivilegedSession", Session)
+    monkeypatch.setattr(acquisition_module, "load_translations", lambda: defaultdict(str))
+    monkeypatch.setattr(acquisition_module, "TasksManager", lambda: manager)
+    monkeypatch.setattr(acquisition_module, "PostAcquisition", _PostAcquisitionStub)
+    monkeypatch.setattr(acquisition_module, "isValid", lambda _task: True)
+    monkeypatch.setattr(
+        acquisition_module,
+        "LogConfigTools",
+        lambda: SimpleNamespace(
+            config={"version": 1},
+            change_filehandlers_path=lambda _path: None,
+        ),
+    )
+
+    acquisition = acquisition_module.Acquisition(logger=SimpleNamespace(name="test"))
+    acquisition.options = {"acquisition_directory": str(tmp_path)}
+    acquisition.load_tasks()
+
+    assert task_one.privileged_session is task_two.privileged_session
+    assert task_one.privileged_session is sessions[-1]
+    assert sessions[-1].directory == str(tmp_path)
+    assert sessions[-1].started is False
+
+    acquisition.unload_tasks()
+    acquisition.unload_tasks()
+    assert sessions[-1].closed == 1
+
+
+@pytest.mark.unit
+def test_non_linux_acquisition_has_no_privileged_session(monkeypatch) -> None:
+    monkeypatch.setattr(acquisition_module.sys, "platform", "darwin")
+    monkeypatch.setattr(acquisition_module, "load_translations", lambda: defaultdict(str))
+    monkeypatch.setattr(acquisition_module, "TasksManager", _TasksManagerStub)
+    monkeypatch.setattr(acquisition_module, "PostAcquisition", _PostAcquisitionStub)
+
+    acquisition = acquisition_module.Acquisition(logger=SimpleNamespace(name="test"))
+
+    assert acquisition._privileged_session is None

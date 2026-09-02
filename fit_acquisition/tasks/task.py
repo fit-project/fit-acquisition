@@ -62,6 +62,7 @@ class Task(QObject):
         self.worker = None
         self.worker_thread = None
         self._privilege_authorization = None
+        self._privileged_session = None
 
         if worker_class:
             self.worker_thread = QThread()
@@ -84,6 +85,16 @@ class Task(QObject):
         self._privilege_authorization = value
         if self.worker is not None:
             self.worker.privilege_authorization = value
+
+    @property
+    def privileged_session(self):
+        return self._privileged_session
+
+    @privileged_session.setter
+    def privileged_session(self, value):
+        self._privileged_session = value
+        if self.worker is not None:
+            self.worker.privileged_session = value
 
     def is_active(self):
         return self.state != State.COMPLETED

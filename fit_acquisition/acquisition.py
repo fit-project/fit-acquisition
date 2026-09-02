@@ -9,6 +9,7 @@
 
 import logging.config
 import os
+import sys
 from enum import Enum, auto
 from pathlib import Path
 
@@ -37,6 +38,7 @@ from fit_acquisition.logger import LogConfigTools
 from fit_acquisition.logger_names import LoggerName
 from fit_acquisition.post import PostAcquisition
 from fit_acquisition.privileged.authorization import PrivilegeAuthorization
+from fit_acquisition.privileged.session import PrivilegedSession
 from fit_acquisition.tasks.tasks_manager import TasksManager
 
 
@@ -96,6 +98,7 @@ class Acquisition(QObject):
         self.tasks_manager = TasksManager()
         self._privilege_authorization = PrivilegeAuthorization()
         self._privilege_authorization.requested.connect(self.privilege_requested.emit)
+        self._privileged_session = PrivilegedSession() if sys.platform == "linux" else None
 
         core_task_packages = [
             "fit_acquisition.tasks.infinite_loop",
@@ -130,6 +133,7 @@ class Acquisition(QObject):
 
         self.post_acquisition = PostAcquisition()
         self.post_acquisition.finished.connect(self.post_acquisition_finished.emit)
+        self.post_acquisition.finished.connect(self._close_privileged_session)
         self.destroyed.connect(lambda: self.__destroyed_handler(self.__dict__))
 
     @property
@@ -224,6 +228,11 @@ class Acquisition(QObject):
 
     def load_tasks(self):
         self._privilege_authorization.reset()
+        if self._privileged_session is not None:
+            self._privileged_session.close()
+            self._privileged_session = PrivilegedSession(
+                self.options["acquisition_directory"]
+            )
         self.log_confing = LogConfigTools()
 
         if self.logger.name == LoggerName.SCRAPER_WEB.value:
@@ -246,6 +255,7 @@ class Acquisition(QObject):
         )
         for task in self.tasks_manager.get_tasks():
             task.privilege_authorization = self._privilege_authorization
+            task.privileged_session = self._privileged_session
 
     def respond_to_privilege_request(self, request_id: str, approved: bool) -> bool:
         """Resolve the pending Linux privilege request exactly once."""
@@ -259,6 +269,7 @@ class Acquisition(QObject):
 
     def unload_tasks(self):
         self._privilege_authorization.cancel()
+        self._close_privileged_session()
         for task in self.tasks_manager.get_tasks():
             if isValid(task):
                 task.deleteLater()
@@ -266,6 +277,10 @@ class Acquisition(QObject):
         self._start_emitted = False
         self._pending_start_tasks.clear()
         self._stop_emitted = False
+
+    def _close_privileged_session(self):
+        if self._privileged_session is not None:
+            self._privileged_session.close()
 
     def run_start_tasks(self):
         tasks = self.tasks_manager.get_tasks_from_class_name(self.start_tasks)
