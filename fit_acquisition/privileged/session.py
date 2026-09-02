@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import shutil
 import signal
@@ -9,6 +10,7 @@ import sys
 import threading
 import time
 import uuid
+from collections import OrderedDict
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -21,6 +23,8 @@ MAX_MESSAGE_SIZE = 1024 * 1024
 DEFAULT_STARTUP_TIMEOUT = 60.0
 DEFAULT_REQUEST_TIMEOUT = 30.0
 TERMINATION_TIMEOUT = 5.0
+MAX_EXPIRED_REQUESTS = 1024
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -51,6 +55,7 @@ class PrivilegedSession:
         self._start_lock = threading.Lock()
         self._pending_lock = threading.Lock()
         self._pending: dict[str, _PendingRequest] = {}
+        self._expired: OrderedDict[str, None] = OrderedDict()
         self._session_ready = False
         self._closed = False
         self._failure: PrivilegedProcessError | None = None
@@ -192,7 +197,17 @@ class PrivilegedSession:
                         error = PrivilegedProcessError(
                             "timeout", f"Privileged operation {operation} timed out"
                         )
-                        self.close()
+                        with self._pending_lock:
+                            self._pending.pop(request_id, None)
+                            self._expired[request_id] = None
+                            self._expired.move_to_end(request_id)
+                            while len(self._expired) > MAX_EXPIRED_REQUESTS:
+                                self._expired.popitem(last=False)
+                        logger.warning(
+                            "Privileged request timed out request_id=%s operation=%s",
+                            request_id,
+                            operation,
+                        )
                         raise error
                     pending.condition.wait(remaining)
                 if pending.ready and not ready_reported:
@@ -304,7 +319,17 @@ class PrivilegedSession:
             return
         with self._pending_lock:
             pending = self._pending.get(request_id)
+            expired = request_id in self._expired
+            if expired and status in {"completed", "error"}:
+                self._expired.pop(request_id, None)
         if pending is None:
+            if expired:
+                logger.debug(
+                    "Ignored late IPC response request_id=%s status=%s",
+                    request_id,
+                    status,
+                )
+                return
             self._fail(PrivilegedProcessError("protocol_error", "Unknown request ID"))
             return
         with pending.condition:

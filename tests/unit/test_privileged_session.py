@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -107,6 +108,197 @@ def test_session_ready_unknown_id_and_duplicate_response() -> None:
     duplicate._dispatch({"request_id": "id", "status": "completed", "result": {}})
     assert duplicate._failure is not None
     assert duplicate._failure.code == "protocol_error"
+
+
+@pytest.mark.unit
+def test_session_timeout_is_isolated_and_late_responses_are_ignored(
+    monkeypatch,
+) -> None:
+    process = _AliveProcess()
+    session = session_module.PrivilegedSession("/tmp/acq")
+    session._process = process
+    session._session_ready = True
+    monkeypatch.setattr(session, "start", lambda: None)
+    request_ids = iter(("expired", "next"))
+    monkeypatch.setattr(
+        session_module.uuid,
+        "uuid4",
+        lambda: SimpleNamespace(hex=next(request_ids)),
+    )
+
+    def send(message):
+        if message["request_id"] == "next":
+            session._dispatch(
+                {"request_id": "next", "status": "completed", "result": {}}
+            )
+
+    monkeypatch.setattr(session, "_send", send)
+
+    with pytest.raises(PrivilegedProcessError) as exc:
+        session.request(
+            "stop_packet_capture", {"output_path": "/tmp/acq/x"}, timeout=0.01
+        )
+
+    assert exc.value.code == "timeout"
+    assert session.active
+    session._dispatch({"request_id": "expired", "status": "ready"})
+    session._dispatch({"request_id": "expired", "status": "completed", "result": []})
+    assert session._failure is None
+    assert "expired" not in session._expired
+    assert session.request("stop_packet_capture", {"output_path": "/tmp/acq/x"}) == {}
+
+
+@pytest.mark.unit
+def test_broker_processes_capture_stop_while_traceroute_is_blocked(
+    monkeypatch, tmp_path: Path
+) -> None:
+    output = tmp_path / "capture.pcap"
+    entered = threading.Event()
+    release = threading.Event()
+    stdout = io.StringIO()
+
+    class Sniffer:
+        def __init__(self):
+            self.results = ["packet"]
+
+        def start(self):
+            return None
+
+        def stop(self):
+            return None
+
+    monkeypatch.setattr(broker_module.scapy, "AsyncSniffer", Sniffer)
+
+    def blocked_traceroute(_destination, ready):
+        ready()
+        entered.set()
+        assert release.wait(1)
+        return []
+
+    monkeypatch.setattr(broker_module, "run_traceroute", blocked_traceroute)
+    monkeypatch.setattr(
+        broker_module.PrivilegedBroker,
+        "_write_pcap",
+        lambda _self, path, _packets: path.write_bytes(b"pcap"),
+    )
+    broker = broker_module.PrivilegedBroker(str(tmp_path), io.StringIO(), stdout)
+
+    broker._handle("start", "start_packet_capture", {"output_path": str(output)})
+    broker._handle("trace", "traceroute", {"destination": "example.org"})
+    assert entered.wait(0.2)
+    broker._handle("stop", "stop_packet_capture", {"output_path": str(output)})
+    messages = [json.loads(line) for line in stdout.getvalue().splitlines()]
+    assert any(
+        m["request_id"] == "stop" and m["status"] == "completed" for m in messages
+    )
+    assert not any(
+        m["request_id"] == "trace" and m["status"] == "completed"
+        for m in messages
+    )
+    release.set()
+    broker._executor.shutdown(wait=True)
+    messages = [json.loads(line) for line in stdout.getvalue().splitlines()]
+    assert any(
+        m["request_id"] == "trace" and m["status"] == "completed"
+        for m in messages
+    )
+
+
+@pytest.mark.unit
+def test_broker_keeps_concurrent_traceroute_ids_and_survives_error(
+    monkeypatch, tmp_path: Path
+) -> None:
+    releases = {"one": threading.Event(), "two": threading.Event()}
+    entered = {"one": threading.Event(), "two": threading.Event()}
+    stdout = io.StringIO()
+
+    def traceroute(destination, ready):
+        ready()
+        entered[destination].set()
+        assert releases[destination].wait(1)
+        if destination == "one":
+            raise RuntimeError("trace failed")
+        return [{"ttl": 1, "ip": "192.0.2.2", "tcp_response": False}]
+
+    monkeypatch.setattr(broker_module, "run_traceroute", traceroute)
+    monkeypatch.setattr(
+        broker_module.scapy,
+        "AsyncSniffer",
+        lambda: SimpleNamespace(start=lambda: None),
+    )
+    broker = broker_module.PrivilegedBroker(str(tmp_path), io.StringIO(), stdout)
+    broker._handle("id-one", "traceroute", {"destination": "one"})
+    broker._handle("id-two", "traceroute", {"destination": "two"})
+    assert entered["one"].wait(0.2) and entered["two"].wait(0.2)
+    releases["two"].set()
+    releases["one"].set()
+    broker._executor.shutdown(wait=True)
+
+    messages = [json.loads(line) for line in stdout.getvalue().splitlines()]
+    terminal = [message for message in messages if message["status"] != "ready"]
+    assert {(m["request_id"], m["status"]) for m in terminal} == {
+        ("id-two", "completed"),
+        ("id-one", "error"),
+    }
+    assert broker._handle(
+        "capture",
+        "start_packet_capture",
+        {"output_path": str(tmp_path / "capture.pcap")},
+    )
+
+
+@pytest.mark.unit
+def test_broker_send_serializes_concurrent_json_lines(tmp_path: Path) -> None:
+    stdout = io.StringIO()
+    broker = broker_module.PrivilegedBroker(str(tmp_path), io.StringIO(), stdout)
+    barrier = threading.Barrier(9)
+
+    def send(index):
+        barrier.wait()
+        broker._send(str(index), "completed", result={"value": index})
+
+    threads = [threading.Thread(target=send, args=(index,)) for index in range(8)]
+    for thread in threads:
+        thread.start()
+    barrier.wait()
+    for thread in threads:
+        thread.join()
+    broker._executor.shutdown(wait=True)
+
+    messages = [json.loads(line) for line in stdout.getvalue().splitlines()]
+    assert {message["request_id"] for message in messages} == {str(i) for i in range(8)}
+
+
+@pytest.mark.unit
+def test_broker_shutdown_is_bounded_and_suppresses_late_worker_output(
+    monkeypatch, tmp_path: Path
+) -> None:
+    entered = threading.Event()
+    release = threading.Event()
+    stdout = io.StringIO()
+
+    def traceroute(_destination, ready):
+        ready()
+        entered.set()
+        assert release.wait(1)
+        return []
+
+    monkeypatch.setattr(broker_module, "run_traceroute", traceroute)
+    monkeypatch.setattr(broker_module, "_SHUTDOWN_WAIT", 0.01)
+    broker = broker_module.PrivilegedBroker(str(tmp_path), io.StringIO(), stdout)
+    broker._handle("trace", "traceroute", {"destination": "example.org"})
+    assert entered.wait(0.2)
+
+    broker._shutdown("shutdown")
+    messages_at_shutdown = stdout.getvalue()
+    assert json.loads(messages_at_shutdown.splitlines()[-1]) == {
+        "request_id": "shutdown",
+        "status": "completed",
+        "result": {},
+    }
+    release.set()
+    broker._executor.shutdown(wait=True)
+    assert stdout.getvalue() == messages_at_shutdown
 
 
 @pytest.mark.unit
@@ -261,14 +453,19 @@ def test_broker_packet_capture_traceroute_and_shutdown(
 
     messages = [json.loads(line) for line in stdout.getvalue().splitlines()]
     assert messages[0] == {"request_id": None, "status": "session_ready"}
-    assert [(item["request_id"], item["status"]) for item in messages[1:]] == [
-        ("1", "ready"),
-        ("2", "ready"),
-        ("2", "completed"),
-        ("3", "completed"),
-        ("4", "completed"),
-    ]
-    assert events == ["capture-start", "traceroute", "capture-stop"]
+    assert sorted(
+        (item["request_id"], item["status"]) for item in messages[1:]
+    ) == sorted(
+        [
+            ("1", "ready"),
+            ("2", "ready"),
+            ("2", "completed"),
+            ("3", "completed"),
+            ("4", "completed"),
+        ]
+    )
+    assert events[0] == "capture-start"
+    assert set(events[1:]) == {"traceroute", "capture-stop"}
 
 
 @pytest.mark.unit

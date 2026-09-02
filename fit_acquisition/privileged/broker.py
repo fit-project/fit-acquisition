@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import logging
 import os
 import re
 import sys
 import tempfile
+import threading
+from concurrent.futures import Future, ThreadPoolExecutor, wait
 from pathlib import Path
 from typing import Any, ClassVar, TextIO
 
@@ -15,6 +18,9 @@ from .traceroute import run_traceroute
 
 MAX_MESSAGE_SIZE = 1024 * 1024
 _DESTINATION = re.compile(r"^[A-Za-z0-9.:-]{1,253}$")
+_SHUTDOWN_WAIT = 12.0
+_TRACEROUTE_WORKERS = 4
+logger = logging.getLogger(__name__)
 
 
 class BrokerError(RuntimeError):
@@ -42,16 +48,70 @@ class PrivilegedBroker:
             )
         self.stdin = stdin
         self.stdout = stdout
-        self.sniffer = None
+        self.sniffer: Any | None = None
         self.capture_output: Path | None = None
+        self._send_lock = threading.Lock()
+        self._executor = ThreadPoolExecutor(
+            max_workers=_TRACEROUTE_WORKERS,
+            thread_name_prefix="fit-traceroute",
+        )
+        self._futures: set[Future[None]] = set()
+        self._futures_lock = threading.Lock()
+        self._output_open = True
+        self._shutting_down = False
 
     def _send(self, request_id: str | None, status: str, **payload: Any) -> None:
         message = {"request_id": request_id, "status": status, **payload}
         encoded = json.dumps(message, separators=(",", ":"))
         if len(encoded.encode("utf-8")) + 1 > MAX_MESSAGE_SIZE:
             raise BrokerError("message_too_large", "IPC response is too large")
-        self.stdout.write(encoded + "\n")
-        self.stdout.flush()
+        with self._send_lock:
+            if not self._output_open:
+                return
+            self.stdout.write(encoded + "\n")
+            self.stdout.flush()
+        logger.debug("IPC response request_id=%s status=%s", request_id, status)
+
+    def _run_traceroute(self, request_id: str, destination: str) -> None:
+        try:
+            rows = run_traceroute(
+                destination, lambda: self._send(request_id, "ready")
+            )
+            self._send(request_id, "completed", result=rows)
+        except Exception as exc:  # noqa: BLE001 - isolate worker failures over IPC
+            self._send(
+                request_id,
+                "error",
+                error={"code": "operation_failed", "details": str(exc)},
+            )
+
+    def _submit_traceroute(self, request_id: str, destination: str) -> None:
+        # Traceroute blocks in network I/O, so it must not occupy the broker's
+        # stdin loop while capture control requests are waiting.
+        future = self._executor.submit(self._run_traceroute, request_id, destination)
+        with self._futures_lock:
+            self._futures.add(future)
+        future.add_done_callback(self._traceroute_finished)
+
+    def _traceroute_finished(self, future: Future[None]) -> None:
+        with self._futures_lock:
+            self._futures.discard(future)
+
+    def _shutdown(self, request_id: str) -> None:
+        logger.debug("Privileged broker shutdown started request_id=%s", request_id)
+        self._shutting_down = True
+        if self.sniffer is not None:
+            self.sniffer.stop()
+            self.sniffer = None
+            self.capture_output = None
+        self._executor.shutdown(wait=False, cancel_futures=True)
+        with self._futures_lock:
+            futures = tuple(self._futures)
+        wait(futures, timeout=_SHUTDOWN_WAIT)
+        self._send(request_id, "completed", result={})
+        with self._send_lock:
+            self._output_open = False
+        logger.debug("Privileged broker shutdown finished request_id=%s", request_id)
 
     def _output_path(self, value: Any) -> Path:
         if not isinstance(value, str) or not value:
@@ -166,19 +226,16 @@ class PrivilegedBroker:
             return True
         if operation == "traceroute":
             destination = arguments.get("destination")
-            if not self._valid_destination(destination):
+            if not isinstance(destination, str) or not self._valid_destination(
+                destination
+            ):
                 raise BrokerError(
                     "invalid_destination", "Invalid traceroute destination"
                 )
-            rows = run_traceroute(destination, lambda: self._send(request_id, "ready"))
-            self._send(request_id, "completed", result=rows)
+            self._submit_traceroute(request_id, destination)
             return True
         if operation == "shutdown":
-            if self.sniffer is not None:
-                self.sniffer.stop()
-                self.sniffer = None
-                self.capture_output = None
-            self._send(request_id, "completed", result={})
+            self._shutdown(request_id)
             return False
         raise BrokerError("invalid_operation", "Operation is not allowed")
 
@@ -203,6 +260,13 @@ class PrivilegedBroker:
                 ):
                     request_id = message["request_id"]
                 request_id, operation, arguments = self._validate_request(message)
+                logger.debug(
+                    "IPC request received request_id=%s operation=%s",
+                    request_id,
+                    operation,
+                )
+                if self._shutting_down:
+                    raise BrokerError("session_closed", "Broker is shutting down")
                 if not self._handle(request_id, operation, arguments):
                     return 0
             except (json.JSONDecodeError, UnicodeError):
@@ -227,6 +291,9 @@ class PrivilegedBroker:
             self.sniffer.stop()
             self.sniffer = None
             self.capture_output = None
+        self._executor.shutdown(wait=False, cancel_futures=True)
+        with self._send_lock:
+            self._output_open = False
         return 0
 
 
