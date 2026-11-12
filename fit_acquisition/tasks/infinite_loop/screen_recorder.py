@@ -8,7 +8,6 @@
 ######
 
 import os
-import pwd
 import subprocess
 import threading
 
@@ -196,9 +195,15 @@ class ScreenRecorderWorker(TaskWorker):
         return displays
 
     def __build_popen_kwargs(self):
+        # Windows has no POSIX user IDs or subprocess preexec_fn support.
+        if os.name != "posix":
+            return {}
+
         sudo_user = os.environ.get("SUDO_USER")
         if os.geteuid() != 0 or not sudo_user:
             return {}
+
+        import pwd
 
         user_info = pwd.getpwnam(sudo_user)
         child_env = os.environ.copy()
